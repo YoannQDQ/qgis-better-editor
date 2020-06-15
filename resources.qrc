@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/plugins/pythontools">
+        <file>icon.svg</file>
+        <file>about.svg</file>
+        <file>wizard.svg</file>
+    </qresource>
+</RCC>
