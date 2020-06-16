@@ -386,7 +386,7 @@ class PythonTools:
             editor.setSelection(*selection)
             selected_text = editor.selectedText()
 
-            if not (
+            if selected_text and not (
                 selected_text[-1] == selected_text[0]
                 and selected_text[-1] in ("'", '"')
             ):
