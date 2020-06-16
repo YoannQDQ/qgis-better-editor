@@ -12,7 +12,7 @@ def resolve(dep):
     cmd = ["python3", "-m", "pip", "install", dep, "--user"]
 
     try:
-        output = subprocess.check_output(cmd)
+        output = subprocess.check_output(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
     except subprocess.CalledProcessError:
         try:
             importlib.import_module(dep)
