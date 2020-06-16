@@ -155,7 +155,7 @@ class PythonTools:
         separator = separator.setObjectName("separator")
         self.toggle_comment_action = self.toolbar.addAction(
             QIcon(":/images/themes/default/console/iconCommentEditorConsole.svg"),
-            "Toggle Comment",
+            self.tr("Toggle Comment"),
         )
         self.toggle_comment_action.setObjectName("toggleComment")
         self.toggle_comment_action.triggered.connect(self.toggle_comment)
@@ -166,7 +166,7 @@ class PythonTools:
 
         # Add format action
         self.format_action = self.toolbar.addAction(
-            QIcon(r":/plugins/pythontools/wizard.svg"), "Format file"
+            QIcon(r":/plugins/pythontools/wizard.svg"), self.tr("Format file")
         )
 
         self.format_action.setObjectName("format")
@@ -179,7 +179,7 @@ class PythonTools:
         # Add insert icon from ressource action
         self.insert_resource_action = self.toolbar.addAction(
             QIcon(":/images/themes/default/propertyicons/diagram.svg"),
-            "Insert resource path",
+            self.tr("Insert resource path"),
         )
         self.insert_resource_action.setObjectName("insertResource")
         self.insert_resource_action.triggered.connect(self.insert_resource)
@@ -411,10 +411,15 @@ class PythonTools:
         QMessageBox.about(
             bogus,
             self.tr("About Python Tools"),
-            "<b>Source code</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
-            "<b>Report issues</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"
-            "<b>Documentation</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a>",
+            "<b>{0}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
+            "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"
+            "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools#python-tools-qgis-plugin>GitHub</a>".format(
+                self.tr("Source code"),
+                self.tr("Report issues"),
+                self.tr("Documentation"),
+            ),
         )
+
         bogus.deleteLater()
 
     def set_old_comments_action_visible(self, value):
