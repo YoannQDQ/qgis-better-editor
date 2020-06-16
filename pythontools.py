@@ -348,7 +348,7 @@ class PythonTools:
         line_length = self.settings.value("max_line_length", 88, int)
 
         completed_process = subprocess.run(
-            f"python -m black {filepath} -l {line_length}",
+            f"python3 -m black {filepath} -l {line_length}",
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
 
