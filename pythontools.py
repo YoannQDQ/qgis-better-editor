@@ -24,25 +24,17 @@ import os
 import subprocess
 import tempfile
 
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, QSize, Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
     QMessageBox,
     QWidget,
     QToolBar,
-    QDockWidget,
     QShortcut,
 )
-
-from qgis.core import (
-    QgsProject,
-    QgsApplication,
-    Qgis,
-)
-
-from qgis.utils import QgsMessageLog
+from PyQt5.Qsci import QsciScintilla
 
 
 from console.console import PythonConsole
@@ -51,6 +43,7 @@ from console.console_editor import Editor, EditorTabWidget
 
 from .dependencies import import_or_install
 from .resourcebrowserimpl import ResourceBrowser
+from .settingsdialogimpl import SettingsDialog
 from .resources import *
 
 
@@ -102,23 +95,35 @@ class PythonTools:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
+        # Create settings dialog
+        self.settings_dialog = SettingsDialog(self.settings, self.iface.mainWindow())
+        self.settings_dialog.settingsChanged.connect(self.on_settings_changed)
+
         # Show Python console to trigger its creation
         self.python_console = self.iface.mainWindow().findChild(PythonConsole)
         if not self.python_console:
             self.iface.actionShowPythonDialog().trigger()
-        self.python_console = self.iface.mainWindow().findChild(PythonConsole)
+            self.python_console = self.iface.mainWindow().findChild(PythonConsole)
+            self.python_console.hide()
+            self.iface.actionShowPythonDialog().setChecked(False)
 
         self.about_action = QAction(
             QIcon(":/plugins/pythontools/about.svg"),
-            self.tr("About Python tools"),
+            self.tr("About"),
             parent=self.iface.mainWindow(),
         )
         self.about_action.triggered.connect(self.show_about)
+
+        self.settings_action = QAction(
+            QIcon(""), self.tr("Settings"), parent=self.iface.mainWindow(),
+        )
+        self.settings_action.triggered.connect(self.show_settings)
 
         self.plugin_menu = self.iface.pluginMenu().addMenu(
             QIcon(":/plugins/pythontools/icon.svg"), "Python Tools"
         )
         self.plugin_menu.addAction(self.about_action)
+        self.plugin_menu.addAction(self.settings_action)
         self.toolbar = self.python_console.findChild(QToolBar)
         self.tab_widget = self.python_console.findChild(EditorTabWidget)
 
@@ -128,6 +133,8 @@ class PythonTools:
         action_zoom_out = self.iface.mainWindow().findChild(QAction, "mActionZoomOut")
         action_zoom_in.setShortcut("")
         action_zoom_out.setShortcut("")
+
+        self.iface.initializationCompleted.connect(self.on_initialization_completed)
         for shortcut_name in (
             "ZoomInToCanvas",
             "ZoomInToCanvas2",
@@ -135,17 +142,13 @@ class PythonTools:
             "ZoomOutOfCanvas",
         ):
             shortcut = self.iface.mainWindow().findChild(QShortcut, shortcut_name)
-            shortcut.setParent(self.iface.mapCanvas())
-            shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+            if shortcut:
+                shortcut.setParent(self.iface.mapCanvas())
+                shortcut.setContext(Qt.WidgetWithChildrenShortcut)
         self.zoom_out_shortcut = QShortcut("Ctrl+Alt+-", self.iface.mapCanvas())
         self.zoom_out_shortcut.setObjectName("MyZoomOut")
         self.zoom_out_shortcut.setContext(Qt.WidgetWithChildrenShortcut)
         self.zoom_out_shortcut.activated.connect(action_zoom_out.trigger)
-
-        # Hide Comment actions
-        self.toolbar.actions()[13].setVisible(False)
-        self.toolbar.actions()[14].setVisible(False)
-        self.toolbar.actions()[15].setVisible(False)
 
         # Create our own toggle comment action
         separator = self.toolbar.addSeparator()
@@ -193,13 +196,31 @@ class PythonTools:
         self.previous_tab_shortcut.setObjectName("PreviousTab")
         self.previous_tab_shortcut.activated.connect(self.go_to_previous_tab)
 
+        self.on_settings_changed()
+
+    def on_initialization_completed(self):
+        """ Called after QGIS has completed its initialization """
+
+        # Shortcuts are created after plugins
+        for shortcut_name in (
+            "ZoomInToCanvas",
+            "ZoomInToCanvas2",
+            "ZoomIn2",
+            "ZoomOutOfCanvas",
+        ):
+            shortcut = self.iface.mainWindow().findChild(QShortcut, shortcut_name)
+            if shortcut:
+                shortcut.setParent(self.iface.mapCanvas())
+                shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
+        # Delete Settings dialog
+        self.settings_dialog.deleteLater()
+
         # Show comment actions
-        self.toolbar.actions()[13].setVisible(True)
-        self.toolbar.actions()[14].setVisible(True)
-        self.toolbar.actions()[15].setVisible(True)
+        self.set_old_comments_action_visible(True)
 
         # Remove custom actions
         for action_name in ("separator", "toggleComment", "format", "insertResource"):
@@ -317,8 +338,11 @@ class PythonTools:
         with open(filepath, "w") as out:
             out.write(editor.text().replace("\r\n", "\n"))
 
+        line_length = self.settings.value("max_line_length", 88, int)
+
         completed_process = subprocess.run(
-            f"python -m black {filepath}", creationflags=subprocess.CREATE_NO_WINDOW
+            f"python -m black {filepath} -l {line_length}",
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
 
         if completed_process.returncode == 0:
@@ -392,3 +416,35 @@ class PythonTools:
             "<b>Documentation</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a>",
         )
         bogus.deleteLater()
+
+    def set_old_comments_action_visible(self, value):
+        self.toolbar.actions()[13].setVisible(value)
+        self.toolbar.actions()[14].setVisible(value)
+        self.toolbar.actions()[15].setVisible(value)
+
+    def show_settings(self):
+
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
+
+    def on_settings_changed(self):
+
+        # Hide / Show old comment actions
+        self.set_old_comments_action_visible(
+            not self.settings.value("hide_old_comment_actions", True, bool)
+        )
+
+        for editor in self.python_console.findChildren(Editor):
+            editor.setFolding(
+                self.settings.value(
+                    "folding_style", QsciScintilla.BoxedTreeFoldStyle, int
+                )
+            )
+            if self.settings.value("ruler_visible", True, bool):
+                editor.setEdgeMode(QsciScintilla.EdgeLine)
+                editor.setEdgeColumn(self.settings.value("max_line_length", 88, int))
+                editor.setEdgeColor(
+                    self.settings.value("ruler_color", QColor("#00aaff"), QColor)
+                )
+            else:
+                editor.setEdgeMode(QsciScintilla.EdgeNone)
