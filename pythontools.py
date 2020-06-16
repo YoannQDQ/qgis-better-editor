@@ -116,7 +116,9 @@ class PythonTools:
         self.about_action.triggered.connect(self.show_about)
 
         self.settings_action = QAction(
-            QIcon(""), self.tr("Settings"), parent=self.iface.mainWindow(),
+            QIcon(":/images/themes/default/console/iconSettingsConsole.svg"),
+            self.tr("Settings"),
+            parent=self.iface.mainWindow(),
         )
         self.settings_action.triggered.connect(self.show_settings)
 
