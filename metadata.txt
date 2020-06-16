@@ -15,7 +15,7 @@ about=Tweak the default python editor
 
 hasProcessingProvider=no
 
-changelog=1.0.0 2020-106-15
+changelog=1.0.0 2020-06-16
       * First version
 
 homepage=https://github.com/YoannQDQ/qgis-python-tools

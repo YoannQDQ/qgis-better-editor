@@ -24,6 +24,7 @@ import os
 import subprocess
 import tempfile
 from functools import partial
+import configparser
 
 from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon, QColor
@@ -417,12 +418,19 @@ class PythonTools:
         # Used to display plugin icon in the about message box
         bogus = QWidget(self.iface.mainWindow())
         bogus.setWindowIcon(QIcon(":/plugins/pythontools/icon.svg"))
+
+        cfg = configparser.ConfigParser()
+        cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))
+        version = cfg.get("general", "version")
+
         QMessageBox.about(
             bogus,
             self.tr("About Python Tools"),
-            "<b>{0}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
-            "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"
-            "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools#python-tools-qgis-plugin>GitHub</a>".format(
+            "<b>Version</b> {0}<br><br>"
+            "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
+            "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"
+            "<b>{3}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools#python-tools-qgis-plugin>GitHub</a>".format(
+                version,
                 self.tr("Source code"),
                 self.tr("Report issues"),
                 self.tr("Documentation"),
