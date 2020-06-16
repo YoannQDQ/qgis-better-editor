@@ -23,6 +23,7 @@
 import os
 import subprocess
 import tempfile
+from functools import partial
 
 from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon, QColor
@@ -126,6 +127,9 @@ class PythonTools:
         self.plugin_menu.addAction(self.settings_action)
         self.toolbar = self.python_console.findChild(QToolBar)
         self.tab_widget = self.python_console.findChild(EditorTabWidget)
+
+        # Connect current
+        self.tab_widget.currentChanged.connect(partial(self.customize_editor, None))
 
         # Tweak zoom shortcuts to prevent them from interfering
         # when typing '|' and '}' with an AZERTY (French) keyboard layout
@@ -256,6 +260,9 @@ class PythonTools:
         self.zoom_out_shortcut.activated.disconnect()
         self.zoom_out_shortcut.setEnabled(False)
         self.zoom_out_shortcut.deleteLater()
+
+        for editor in self.python_console.findChildren(Editor):
+            self.restore_editor(editor)
 
         # Remove menu from plugins menu
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
@@ -440,16 +447,41 @@ class PythonTools:
         )
 
         for editor in self.python_console.findChildren(Editor):
-            editor.setFolding(
-                self.settings.value(
-                    "folding_style", QsciScintilla.BoxedTreeFoldStyle, int
-                )
+            self.customize_editor(editor)
+
+    def customize_editor(self, editor=None):
+        if editor is None:
+            editor = self.current_editor()
+
+        if editor is None:
+            return
+
+        editor.setFolding(
+            self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int)
+        )
+
+        # Add a small margin after the indicator (if folding is not Plain or None)
+        if editor.folding() > 1:
+            editor.setMarginWidth(3, "0")
+        else:
+            editor.setMarginWidth(3, "")
+
+        if self.settings.value("ruler_visible", True, bool):
+            editor.setEdgeMode(QsciScintilla.EdgeLine)
+            editor.setEdgeColumn(self.settings.value("max_line_length", 88, int))
+            editor.setEdgeColor(
+                self.settings.value("ruler_color", QColor("#00aaff"), QColor)
             )
-            if self.settings.value("ruler_visible", True, bool):
-                editor.setEdgeMode(QsciScintilla.EdgeLine)
-                editor.setEdgeColumn(self.settings.value("max_line_length", 88, int))
-                editor.setEdgeColor(
-                    self.settings.value("ruler_color", QColor("#00aaff"), QColor)
-                )
-            else:
-                editor.setEdgeMode(QsciScintilla.EdgeNone)
+        else:
+            editor.setEdgeMode(QsciScintilla.EdgeNone)
+
+    def restore_editor(self, editor):
+        editor.setFolding(QsciScintilla.PlainFoldStyle)
+        editor.setEdgeMode(QsciScintilla.EdgeLine)
+        editor.setEdgeColumn(80)
+        editor.setMarginWidth(3, "")
+        editor.setEdgeColor(
+            QSettings().value(
+                "pythonConsole/edgeColorEditor", QColor("#efefef"), QColor
+            )
+        )
