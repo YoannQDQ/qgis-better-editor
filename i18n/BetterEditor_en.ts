@@ -1,50 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="en">
+<!DOCTYPE TS><TS version="2.0" language="en" sourcelanguage="">
 <context>
-    <name>PythonTools</name>
+    <name>BetterEditor</name>
     <message>
-        <location filename="../pythontools.py" line="110"/>
+        <location filename="../bettereditor.py" line="112"/>
         <source>About</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="117"/>
+        <location filename="../bettereditor.py" line="119"/>
         <source>Settings</source>
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="156"/>
+        <location filename="../bettereditor.py" line="163"/>
         <source>Toggle Comment</source>
         <translation>Toggle Comment</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="168"/>
+        <location filename="../bettereditor.py" line="175"/>
         <source>Format file</source>
         <translation>Format file</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="180"/>
+        <location filename="../bettereditor.py" line="187"/>
         <source>Insert resource path</source>
         <translation>Insert resource path</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="411"/>
-        <source>About Python Tools</source>
-        <translation>About Python Tools</translation>
+        <location filename="../bettereditor.py" line="426"/>
+        <source>About Better Editor</source>
+        <translation>About Better Editor</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="411"/>
+        <location filename="../bettereditor.py" line="426"/>
         <source>Source code</source>
         <translation>Source code</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="411"/>
+        <location filename="../bettereditor.py" line="426"/>
         <source>Documentation</source>
         <translation>Documentation</translation>
     </message>
     <message>
-        <location filename="../pythontools.py" line="411"/>
+        <location filename="../bettereditor.py" line="426"/>
         <source>Report issues</source>
         <translation>Report issues</translation>
     </message>
@@ -79,11 +78,6 @@
 </context>
 <context>
     <name>SettingsDialog</name>
-    <message>
-        <location filename="../settingsdialog.py" line="76"/>
-        <source>Python Tools Settings</source>
-        <translation>Python Tools Settings</translation>
-    </message>
     <message>
         <location filename="../settingsdialog.py" line="77"/>
         <source>Hide old comment actions</source>
@@ -133,6 +127,11 @@
         <location filename="../settingsdialogimpl.py" line="30"/>
         <source>Boxed</source>
         <translation>Boxed</translation>
+    </message>
+    <message>
+        <location filename="../settingsdialog.py" line="76"/>
+        <source>Better Editor Settings</source>
+        <translation>Better Editor Settings</translation>
     </message>
 </context>
 </TS>

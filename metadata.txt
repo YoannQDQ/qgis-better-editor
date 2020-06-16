@@ -3,7 +3,7 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Python tools
+name=Better Editor
 qgisMinimumVersion=3.0
 description=Improve the embedded python editor
 version=1.0.0

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- Python tools
+ Better Editor
  A QGIS plugin which improves the embedded python editor
 
                               -------------------
@@ -49,7 +49,7 @@ from .settingsdialogimpl import SettingsDialog
 from .resources import *
 
 
-class PythonTools:
+class BetterEditor:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -67,7 +67,7 @@ class PythonTools:
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
         locale_path = os.path.join(
-            self.plugin_dir, "i18n", "PythonTools_{}.qm".format(locale)
+            self.plugin_dir, "i18n", "BetterEditor_{}.qm".format(locale)
         )
 
         if os.path.exists(locale_path):
@@ -77,7 +77,7 @@ class PythonTools:
 
         # Init settings
         self.settings = QSettings()
-        self.settings.beginGroup("plugins/pythontools")
+        self.settings.beginGroup("plugins/bettereditor")
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -92,7 +92,7 @@ class PythonTools:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate("PythonTools", message)
+        return QCoreApplication.translate("BetterEditor", message)
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -110,7 +110,7 @@ class PythonTools:
             self.iface.actionShowPythonDialog().setChecked(False)
 
         self.about_action = QAction(
-            QIcon(":/plugins/pythontools/about.svg"),
+            QIcon(":/plugins/bettereditor/about.svg"),
             self.tr("About"),
             parent=self.iface.mainWindow(),
         )
@@ -124,7 +124,7 @@ class PythonTools:
         self.settings_action.triggered.connect(self.show_settings)
 
         self.plugin_menu = self.iface.pluginMenu().addMenu(
-            QIcon(":/plugins/pythontools/icon.svg"), "Python Tools"
+            QIcon(":/plugins/bettereditor/icon.svg"), "Better Editor"
         )
         self.plugin_menu.addAction(self.about_action)
         self.plugin_menu.addAction(self.settings_action)
@@ -173,7 +173,7 @@ class PythonTools:
 
         # Add format action
         self.format_action = self.toolbar.addAction(
-            QIcon(r":/plugins/pythontools/wizard.svg"), self.tr("Format file")
+            QIcon(r":/plugins/bettereditor/wizard.svg"), self.tr("Format file")
         )
 
         self.format_action.setObjectName("format")
@@ -417,7 +417,7 @@ class PythonTools:
 
         # Used to display plugin icon in the about message box
         bogus = QWidget(self.iface.mainWindow())
-        bogus.setWindowIcon(QIcon(":/plugins/pythontools/icon.svg"))
+        bogus.setWindowIcon(QIcon(":/plugins/bettereditor/icon.svg"))
 
         cfg = configparser.ConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))
@@ -425,7 +425,7 @@ class PythonTools:
 
         QMessageBox.about(
             bogus,
-            self.tr("About Python Tools"),
+            self.tr("About Better Editor"),
             "<b>Version</b> {0}<br><br>"
             "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
             "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"

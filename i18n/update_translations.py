@@ -23,5 +23,5 @@ if __name__ == "__main__":
             PATHS.append(f'"{path}"')
 
         os.system(
-            f"pylupdate5 -verbose -noobsolete {' '.join(PATHS)} -ts ./PythonTools_fr.ts ./PythonTools_en.ts"
+            f"pylupdate5 -verbose -noobsolete {' '.join(PATHS)} -ts ./BetterEditor_fr.ts ./BetterEditor_en.ts"
         )

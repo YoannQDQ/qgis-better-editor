@@ -1,4 +1,4 @@
-Python tools (QGIS plugin)
+Better Editor (QGIS plugin)
 ===
 ![Icon](./icon.png)
 

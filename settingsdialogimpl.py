@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtWidgets import QDialog
 from PyQt5.Qsci import QsciScintilla
 
@@ -18,6 +18,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
 
         self.resetting = False
         self.settings = settings
+        self.setWindowIcon(QIcon(":/plugins/bettereditor/icon.svg"))
 
         # Populate folding style combobox
         self.foldingStyleComboBox.addItem(self.tr("None"), QsciScintilla.NoFoldStyle)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- Python tools
+ Better Editor
  A QGIS plugin which improves the embedded python editor
 
                               -------------------
@@ -31,6 +31,6 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .pythontools import PythonTools
+    from .bettereditor import BetterEditor
 
-    return PythonTools(iface)
+    return BetterEditor(iface)
