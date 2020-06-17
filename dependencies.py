@@ -7,24 +7,27 @@ import importlib
 
 
 def resolve(dep):
-    error = False
+    module = None
     output = b""
     cmd = ["python3", "-m", "pip", "install", dep, "--user"]
 
+    # Try to install module
     try:
         output = subprocess.check_output(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
     except subprocess.CalledProcessError:
-        try:
-            importlib.import_module(dep)
-        except ModuleNotFoundError:
-            error = True
+        pass
 
-    return [error, " ".join(cmd), output.decode("utf-8")]
+    # Even if process failed, try to import module
+    try:
+        module = importlib.import_module(dep)
+    except ModuleNotFoundError:
+        pass
+
+    return [module, " ".join(cmd), output.decode("utf-8")]
 
 
 def import_or_install(dep):
     try:
-        importlib.import_module(dep)
-        return [False, ""]
+        return importlib.import_module(dep)
     except ModuleNotFoundError:
-        return resolve(dep)
+        return resolve(dep)[0]

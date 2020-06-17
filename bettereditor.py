@@ -26,8 +26,8 @@ import tempfile
 from functools import partial
 import configparser
 
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QSize
+from PyQt5.QtGui import QIcon, QColor, QFont, QPixmap
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -36,8 +36,9 @@ from PyQt5.QtWidgets import (
     QToolBar,
     QShortcut,
 )
-from PyQt5.Qsci import QsciScintilla
+from PyQt5.Qsci import QsciScintilla, QsciStyle
 
+from qgis.core import QgsApplication
 
 from console.console import PythonConsole
 from console.console_editor import Editor, EditorTabWidget
@@ -46,6 +47,7 @@ from console.console_editor import Editor, EditorTabWidget
 from .dependencies import import_or_install
 from .resourcebrowserimpl import ResourceBrowser
 from .settingsdialogimpl import SettingsDialog
+from .indicatorsutils import define_indicators, check_syntax, clear_all_indicators
 from .resources import *
 
 
@@ -171,17 +173,40 @@ class BetterEditor:
             f"<b>{self.toggle_comment_action.text()}</b> ({self.toggle_comment_action.shortcut().toString()})"
         )
 
+        # Check that submodules are installed
+        self.black = None
+        self.jedi = None
+        self.check_dependencies()
+
         # Add format action
         self.format_action = self.toolbar.addAction(
             QIcon(r":/plugins/bettereditor/wizard.svg"), self.tr("Format file")
         )
-
         self.format_action.setObjectName("format")
         self.format_action.setShortcut("Ctrl+Alt+F")
         self.format_action.triggered.connect(self.format_file)
         self.format_action.setToolTip(
             f"<b>{self.format_action.text()}</b> ({self.format_action.shortcut().toString()})"
         )
+        if not self.black:
+            self.format_action.setEnabled(False)
+
+        # Check syntax action
+        self.check_syntax_action = self.toolbar.addAction(
+            QIcon(":/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg"),
+            self.tr("Check syntax"),
+        )
+        self.check_syntax_action.setObjectName("syntax")
+        self.check_syntax_action.triggered.connect(self.check_syntax)
+        self.check_syntax_action.setToolTip(f"<b>{self.check_syntax_action.text()}</b>")
+
+        if not self.jedi:
+            self.check_syntax_action.setEnabled(False)
+        else:
+
+            # MonkeyPatch Editor
+            Editor.__originalSyntaxCheck = Editor.syntaxCheck
+            Editor.syntaxCheck = check_syntax
 
         # Add insert icon from ressource action
         self.insert_resource_action = self.toolbar.addAction(
@@ -204,6 +229,33 @@ class BetterEditor:
         self.previous_tab_shortcut.activated.connect(self.go_to_previous_tab)
 
         self.on_settings_changed()
+
+        if not self.black:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                self.tr("Error"),
+                self.tr(
+                    "Unable to load <b>black</b>. Formatting will be disabled. You could try to manually install <b>black</b> with pip"
+                ),
+            )
+
+        if not self.jedi:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                self.tr("Error"),
+                self.tr(
+                    "Unable to load <b>jedi</b>. Multi syntax error check will be disabled. You could try to manually install <b>jedi</b> with pip"
+                ),
+            )
+
+    def check_dependencies(self):
+        self.black = import_or_install("black")
+        self.jedi = import_or_install("jedi")
+
+    def check_syntax(self, *args, **kwargs):
+        if not self.jedi:
+            return self.current_editor().syntaxCheck()
+        return check_syntax(self.current_editor())
 
     def on_initialization_completed(self):
         """ Called after QGIS has completed its initialization """
@@ -230,7 +282,13 @@ class BetterEditor:
         self.set_old_comments_action_visible(True)
 
         # Remove custom actions
-        for action_name in ("separator", "toggleComment", "format", "insertResource"):
+        for action_name in (
+            "separator",
+            "toggleComment",
+            "format",
+            "syntax",
+            "insertResource",
+        ):
             action = self.toolbar.findChild(QAction, action_name)
             if action:
                 action.deleteLater()
@@ -264,7 +322,12 @@ class BetterEditor:
         self.zoom_out_shortcut.setEnabled(False)
         self.zoom_out_shortcut.deleteLater()
 
+        # Revert MonkeyPatch
+        if self.jedi:
+            Editor.syntaxCheck = Editor.__originalSyntaxCheck
+
         for editor in self.python_console.findChildren(Editor):
+            clear_all_indicators(editor)
             self.restore_editor(editor)
 
         # Remove menu from plugins menu
@@ -331,13 +394,15 @@ class BetterEditor:
         editor.setSelection(start_line, start_pos - delta, end_line, end_pos - delta)
 
     def format_file(self):
+
+        if not self.black:
+            return
+
         editor = self.current_editor()
 
         # Check there's no syntax errors before calling black
-        if not editor.syntaxCheck():
+        if not self.check_syntax():
             return
-
-        import_or_install("black")
 
         old_pos = editor.getCursorPosition()
         old_scroll_value = editor.verticalScrollBar().value()
@@ -427,9 +492,9 @@ class BetterEditor:
             bogus,
             self.tr("About Better Editor"),
             "<b>Version</b> {0}<br><br>"
-            "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools>GitHub</a><br>"
-            "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools/issues>GitHub</a><br>"
-            "<b>{3}</b> : <a href=https://github.com/YoannQDQ/qgis-python-tools#python-tools-qgis-plugin>GitHub</a>".format(
+            "<b>{1}</b> : <a href=https://github.com/YoannQDQ/qgis-better-editor>GitHub</a><br>"
+            "<b>{2}</b> : <a href=https://github.com/YoannQDQ/qgis-better-editor/issues>GitHub</a><br>"
+            "<b>{3}</b> : <a href=https://github.com/YoannQDQ/qgis-better-editor#better-editor-qgis-plugin>GitHub</a>".format(
                 version,
                 self.tr("Source code"),
                 self.tr("Report issues"),
@@ -485,6 +550,9 @@ class BetterEditor:
         else:
             editor.setEdgeMode(QsciScintilla.EdgeNone)
 
+        # Change syntax error marker
+        define_indicators(editor)
+
     def restore_editor(self, editor):
         editor.setFolding(QsciScintilla.PlainFoldStyle)
         editor.setEdgeMode(QsciScintilla.EdgeLine)
@@ -495,3 +563,10 @@ class BetterEditor:
                 "pythonConsole/edgeColorEditor", QColor("#efefef"), QColor
             )
         )
+
+        editor.markerDefine(
+            QgsApplication.getThemePixmap("console/iconSyntaxErrorConsole.svg"),
+            editor.MARKER_NUM,
+        )
+
+        editor.setAnnotationDisplay(QsciScintilla.AnnotationBoxed)

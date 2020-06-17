@@ -18,9 +18,9 @@ hasProcessingProvider=no
 changelog=1.0.0 2020-06-16
       * First version
 
-homepage=https://github.com/YoannQDQ/qgis-python-tools
-tracker=https://github.com/YoannQDQ/qgis-python-tools/issues
-repository=https://github.com/YoannQDQ/qgis-python-tools
+homepage=https://github.com/YoannQDQ/qgis-better-editor
+tracker=https://github.com/YoannQDQ/qgis-better-editor/issues
+repository=https://github.com/YoannQDQ/qgis-better-editor
 
 icon=icon.png
 # experimental flag

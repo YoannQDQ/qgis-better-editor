@@ -3,5 +3,6 @@
         <file>icon.svg</file>
         <file>about.svg</file>
         <file>wizard.svg</file>
+        <file>clear.svg</file>
     </qresource>
 </RCC>
