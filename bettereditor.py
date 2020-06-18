@@ -415,9 +415,14 @@ class BetterEditor:
 
         line_length = self.settings.value("max_line_length", 88, int)
 
+        try:
+            creationflags = subprocess.CREATE_NO_WINDOW
+        except AttributeError:
+            creationflags = 0
+
         completed_process = subprocess.run(
             f"python3 -m black {filepath} -l {line_length}",
-            creationflags=subprocess.CREATE_NO_WINDOW,
+            creationflags=creationflags,
         )
 
         if completed_process.returncode == 0:

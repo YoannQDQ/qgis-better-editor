@@ -11,9 +11,14 @@ def resolve(dep):
     output = b""
     cmd = ["python3", "-m", "pip", "install", dep, "--user"]
 
+    try:
+        creationflags = subprocess.CREATE_NO_WINDOW
+    except AttributeError:
+        creationflags = 0
+
     # Try to install module
     try:
-        output = subprocess.check_output(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+        output = subprocess.check_output(cmd, creationflags=creationflags)
     except subprocess.CalledProcessError:
         pass
 
