@@ -13,6 +13,10 @@ This plugin improves the embedded Python editor with several useful features.
 ![formatCode](./docs/black.gif)
 - Insert icon from QGIS resources: useful for quick prototyping
 - Tweak some QGIS shortcuts which prevented user from entering `}` and `|` in the console when keyboard used AZERTY (French) layout
+- Multiple syntax error check with [jedi](https://github.com/davidhalter/jedi).
+
+![syntax check](./docs/syntax_check.png)
+<sup><i>Original, simple check (QGIS) and multi check (Jedi)</i></sup>
 
 Settings dialog
 ---
