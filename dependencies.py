@@ -6,21 +6,27 @@ import subprocess
 import importlib
 
 
-def resolve(dep):
+def check_pip():
+    try:
+        import pip
+    except ModuleNotFoundError:
+        return False
+    return True
+
+
+def install(dep):
     module = None
-    output = b""
+
+    if not check_pip():
+        return module
+
     cmd = ["python3", "-m", "pip", "install", dep, "--user"]
 
+    # Prevents the call to pip from spawning an console on Windows.
     try:
-        creationflags = subprocess.CREATE_NO_WINDOW
-    except AttributeError:
-        creationflags = 0
-
-    # Try to install module
-    try:
-        output = subprocess.check_output(cmd, creationflags=creationflags)
-    except subprocess.CalledProcessError:
-        pass
+        subprocess.run(cmd, check=False, creationflags=subprocess.CREATE_NO_WINDOW)
+    except (AttributeError, TypeError):
+        subprocess.run(cmd, check=False)
 
     # Even if process failed, try to import module
     try:
@@ -28,11 +34,11 @@ def resolve(dep):
     except ModuleNotFoundError:
         pass
 
-    return [module, " ".join(cmd), output.decode("utf-8")]
+    return module
 
 
 def import_or_install(dep):
     try:
         return importlib.import_module(dep)
     except ModuleNotFoundError:
-        return resolve(dep)[0]
+        return install(dep)

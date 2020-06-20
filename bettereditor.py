@@ -44,7 +44,7 @@ from console.console import PythonConsole
 from console.console_editor import Editor, EditorTabWidget
 
 
-from .dependencies import import_or_install
+from .dependencies import import_or_install, check_pip
 from .resourcebrowserimpl import ResourceBrowser
 from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, check_syntax, clear_all_indicators
@@ -230,23 +230,35 @@ class BetterEditor:
 
         self.on_settings_changed()
 
-        if not self.black:
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                self.tr("Error"),
-                self.tr(
-                    "Unable to load <b>black</b>. Formatting will be disabled. You could try to manually install <b>black</b> with pip"
-                ),
-            )
+        if not self.black or not self.jedi:
+            if not check_pip():
 
-        if not self.jedi:
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                self.tr("Error"),
-                self.tr(
-                    "Unable to load <b>jedi</b>. Multi syntax error check will be disabled. You could try to manually install <b>jedi</b> with pip"
-                ),
-            )
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    self.tr("Error"),
+                    self.tr(
+                        "Pip is not installed. Try to get it, then restart QGIS, or  manually install <b>black</b> and <b>jedi</b>"
+                    ),
+                )
+
+            else:
+                if not self.black:
+                    QMessageBox.warning(
+                        self.iface.mainWindow(),
+                        self.tr("Error"),
+                        self.tr(
+                            "Unable to load <b>black</b>. Formatting will be disabled. You could try to manually install <b>black</b> with pip"
+                        ),
+                    )
+
+                if not self.jedi:
+                    QMessageBox.warning(
+                        self.iface.mainWindow(),
+                        self.tr("Error"),
+                        self.tr(
+                            "Unable to load <b>jedi</b>. Multi syntax error check will be disabled. You could try to manually install <b>jedi</b> with pip"
+                        ),
+                    )
 
     def check_dependencies(self):
         self.black = import_or_install("black")
@@ -415,15 +427,14 @@ class BetterEditor:
 
         line_length = self.settings.value("max_line_length", 88, int)
 
+        cmd = ["python3", "-m", "black", filepath, "-l", str(line_length)]
+        # Prevents the call to black from spawning an console on Windows.
         try:
-            creationflags = subprocess.CREATE_NO_WINDOW
-        except AttributeError:
-            creationflags = 0
-
-        completed_process = subprocess.run(
-            f"python3 -m black {filepath} -l {line_length}",
-            creationflags=creationflags,
-        )
+            completed_process = subprocess.run(
+                cmd, check=False, creationflags=subprocess.CREATE_NO_WINDOW
+            )
+        except (AttributeError, TypeError):
+            completed_process = subprocess.run(cmd, check=False)
 
         if completed_process.returncode == 0:
             with open(filepath) as out:
