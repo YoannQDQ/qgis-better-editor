@@ -43,7 +43,13 @@ from console.console import PythonConsole
 from console.console_editor import Editor, EditorTabWidget, EditorTab
 
 
-from .dependencies import import_or_install, check_pip
+from .dependencies import (
+    import_or_install,
+    check_pip,
+    check_minimum_version,
+    install,
+    check_module,
+)
 from .customclasses import MonkeyEditorTab, MonkeyEditor
 from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, clear_all_indicators
@@ -250,17 +256,44 @@ class BetterEditor:
                     )
 
                 if not self.jedi:
-                    QMessageBox.warning(
-                        self.iface.mainWindow(),
-                        self.tr("Error"),
-                        self.tr(
-                            "Unable to load <b>jedi</b>. Multi syntax error check will be disabled. You could try to manually install <b>jedi</b> with pip"
-                        ),
-                    )
+
+                    # If check_module return true, an obsolete version was loaded, ad user was already informed
+                    if not check_module("jedi"):
+                        QMessageBox.warning(
+                            self.iface.mainWindow(),
+                            self.tr("Error"),
+                            self.tr(
+                                "Unable to load <b>jedi</b>. Multi syntax error check will be disabled. You could try to manually install <b>jedi</b> with pip"
+                            ),
+                        )
 
     def check_dependencies(self):
-        self.black = import_or_install("black")
-        self.jedi = import_or_install("jedi")
+        install("packaging")
+        self.black, _ = import_or_install("black")
+        self.jedi, jedi_version = import_or_install("jedi")
+
+        # JEDI 0.17 is required
+        if not check_minimum_version(jedi_version, "0.17"):
+            res = QMessageBox.question(
+                self.iface.mainWindow(),
+                self.tr("Information"),
+                self.tr(
+                    "<b>jedi</b> version is {0} and BetterEditor needs {1}. Do you want to upgrade <b>jedi</b>?<br><b>Warning:</b> it could cause old code relying on the obsolete <b>jedi</b> to stop working correctly."
+                ).format(jedi_version, "0.17"),
+                QMessageBox.Yes | QMessageBox.No,
+            )
+
+            if res == QMessageBox.Yes:
+                install("jedi", True)
+                QMessageBox.information(
+                    self.iface.mainWindow(),
+                    self.tr("Information"),
+                    self.tr(
+                        "Jedi was upgraded. You need to restart QGIS to fully use BetterEditor"
+                    ),
+                )
+
+            self.jedi = None
 
     def check_syntax(self):
         return self.current_editor().syntaxCheck()

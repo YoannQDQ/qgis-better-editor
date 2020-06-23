@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QSettings, QSize
 from PyQt5.Qsci import QsciScintilla, QsciStyle
 from PyQt5.QtGui import QColor, QPixmap, QFont
 
-from .dependencies import import_or_install
+from .dependencies import check_module
 
 
 SYNTAX_ERROR_STYLE = 100
@@ -10,7 +10,11 @@ SYNTAX_ERROR_STYLE = 100
 
 def check_syntax(editor, *args, **kwargs):
 
-    jedi = import_or_install("jedi")
+    if not check_module("jedi", "0.17"):
+        return
+
+    import jedi
+
     s = jedi.Script(code=editor.text())
     errors = s.get_syntax_errors()
 

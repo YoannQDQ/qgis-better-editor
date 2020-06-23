@@ -27,7 +27,7 @@ class MonkeyEditorTab:
 
 class MonkeyEditor:
     def syntaxCheck(self, filename=None, fromContextMenu=True):
-        if not check_module("jedi"):
+        if not check_module("jedi", "0.17"):
             return unpatched().syntaxCheck(filename, fromContextMenu)
         return check_syntax(self, filename, fromContextMenu)
 
