@@ -39,6 +39,9 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.maxLineLengthSpinBox.setValue(
             self.settings.value("max_line_length", 88, int)
         )
+        self.formatOnSaveCheckBox.setChecked(
+            self.settings.value("format_on_save", True, bool)
+        )
 
         self.rulerCheckBox.setChecked(self.settings.value("ruler_visible", True, bool))
         self.rulerColorButton.setColor(
@@ -56,6 +59,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         # Connect signals
         self.hideCommentCheckBox.toggled.connect(self.on_hide_comment_actions_changed)
         self.maxLineLengthSpinBox.valueChanged.connect(self.on_max_length_changed)
+        self.formatOnSaveCheckBox.toggled.connect(self.on_format_on_save_changed)
         self.foldingStyleComboBox.currentIndexChanged.connect(
             self.on_folding_style_changed
         )
@@ -76,6 +80,12 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
     def on_hide_comment_actions_changed(self, checked):
         """ Called whenever the hide comment actions state changes """
         self.settings.setValue("hide_old_comment_actions", checked)
+        if not self.resetting:
+            self.settingsChanged.emit()
+
+    def on_format_on_save_changed(self, checked):
+        """ Called whenever the hide comment actions state changes """
+        self.settings.setValue("format_on_save", checked)
         if not self.resetting:
             self.settingsChanged.emit()
 
@@ -103,6 +113,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.resetting = True
         self.hideCommentCheckBox.setChecked(True)
         self.maxLineLengthSpinBox.setValue(88)
+        self.formatOnSaveCheckBox.setChecked(True)
         self.foldingStyleComboBox.setCurrentIndex(3)
         self.rulerCheckBox.setChecked(True)
         self.rulerColorButton.setColor(QColor("#00aaff"))

@@ -21,33 +21,33 @@
  ***************************************************************************/
 """
 import os
-import subprocess
-import tempfile
+import sys
 from functools import partial
 import configparser
 
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QSize
-from PyQt5.QtGui import QIcon, QColor, QFont, QPixmap
+
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QPoint
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (
     QAction,
-    QDialog,
     QMessageBox,
     QWidget,
     QToolBar,
     QShortcut,
 )
-from PyQt5.Qsci import QsciScintilla, QsciStyle
+from PyQt5.Qsci import QsciScintilla
 
 from qgis.core import QgsApplication
 
 from console.console import PythonConsole
-from console.console_editor import Editor, EditorTabWidget
+from console.console_editor import Editor, EditorTabWidget, EditorTab
 
 
 from .dependencies import import_or_install, check_pip
-from .resourcebrowserimpl import ResourceBrowser
+from .customclasses import MonkeyEditorTab, MonkeyEditor
 from .settingsdialogimpl import SettingsDialog
-from .indicatorsutils import define_indicators, check_syntax, clear_all_indicators
+from .indicatorsutils import define_indicators, clear_all_indicators
+from .monkeypatch import Patcher
 from .resources import *
 
 
@@ -200,13 +200,11 @@ class BetterEditor:
         self.check_syntax_action.triggered.connect(self.check_syntax)
         self.check_syntax_action.setToolTip(f"<b>{self.check_syntax_action.text()}</b>")
 
-        if not self.jedi:
-            self.check_syntax_action.setEnabled(False)
-        else:
+        self.patchers = []
+        self.patchers.append(Patcher(Editor, MonkeyEditor))
 
-            # MonkeyPatch Editor
-            Editor.__originalSyntaxCheck = Editor.syntaxCheck
-            Editor.syntaxCheck = check_syntax
+        # MonkeyPatch save
+        self.patchers.append(Patcher(EditorTab, MonkeyEditorTab))
 
         # Add insert icon from ressource action
         self.insert_resource_action = self.toolbar.addAction(
@@ -264,10 +262,8 @@ class BetterEditor:
         self.black = import_or_install("black")
         self.jedi = import_or_install("jedi")
 
-    def check_syntax(self, *args, **kwargs):
-        if not self.jedi:
-            return self.current_editor().syntaxCheck()
-        return check_syntax(self.current_editor())
+    def check_syntax(self):
+        return self.current_editor().syntaxCheck()
 
     def on_initialization_completed(self):
         """ Called after QGIS has completed its initialization """
@@ -335,8 +331,8 @@ class BetterEditor:
         self.zoom_out_shortcut.deleteLater()
 
         # Revert MonkeyPatch
-        if self.jedi:
-            Editor.syntaxCheck = Editor.__originalSyntaxCheck
+        for patcher in self.patchers:
+            patcher.unpatch()
 
         for editor in self.python_console.findChildren(Editor):
             clear_all_indicators(editor)
@@ -349,140 +345,13 @@ class BetterEditor:
         return self.tab_widget.currentWidget().findChild(Editor)
 
     def toggle_comment(self):
-
-        editor = self.current_editor()
-        editor.beginUndoAction()
-        if editor.hasSelectedText():
-            start_line, start_pos, end_line, end_pos = editor.getSelection()
-        else:
-            start_line, start_pos = editor.getCursorPosition()
-            end_line, end_pos = start_line, start_pos
-
-        # Special case, only empty lines
-        if not any(
-            editor.text(line).strip() for line in range(start_line, end_line + 1)
-        ):
-            return
-
-        all_commented = all(
-            editor.text(line).strip().startswith("#")
-            for line in range(start_line, end_line + 1)
-            if editor.text(line).strip()
-        )
-        min_indentation = min(
-            editor.indentation(line)
-            for line in range(start_line, end_line + 1)
-            if editor.text(line).strip()
-        )
-
-        for line in range(start_line, end_line + 1):
-            # Empty line
-            if not editor.text(line).strip():
-                continue
-
-            delta = 0
-
-            if not all_commented:
-                editor.insertAt("# ", line, min_indentation)
-                delta = -2
-            else:
-                if not editor.text(line).strip().startswith("#"):
-                    continue
-                if editor.text(line).strip().startswith("# "):
-                    delta = 2
-                else:
-                    delta = 1
-
-                editor.setSelection(
-                    line,
-                    editor.indentation(line),
-                    line,
-                    editor.indentation(line) + delta,
-                )
-                editor.removeSelectedText()
-
-        editor.endUndoAction()
-
-        editor.setSelection(start_line, start_pos - delta, end_line, end_pos - delta)
+        self.current_editor().toggle_comment()
 
     def format_file(self):
-
-        if not self.black:
-            return
-
-        editor = self.current_editor()
-
-        # Check there's no syntax errors before calling black
-        if not self.check_syntax():
-            return
-
-        old_pos = editor.getCursorPosition()
-        old_scroll_value = editor.verticalScrollBar().value()
-
-        myfile = tempfile.mkstemp(".py")
-        filepath = myfile[1]
-        os.close(myfile[0])
-        with open(filepath, "w") as out:
-            out.write(editor.text().replace("\r\n", "\n"))
-
-        line_length = self.settings.value("max_line_length", 88, int)
-
-        cmd = ["python3", "-m", "black", filepath, "-l", str(line_length)]
-        # Prevents the call to black from spawning an console on Windows.
-        try:
-            completed_process = subprocess.run(
-                cmd, check=False, creationflags=subprocess.CREATE_NO_WINDOW
-            )
-        except (AttributeError, TypeError):
-            completed_process = subprocess.run(cmd, check=False)
-
-        if completed_process.returncode == 0:
-            with open(filepath) as out:
-                content = out.read()
-            editor.beginUndoAction()
-            editor.selectAll()
-            editor.removeSelectedText()
-            editor.insert(content)
-            editor.setCursorPosition(*old_pos)
-            editor.verticalScrollBar().setValue(old_scroll_value)
-            editor.endUndoAction()
-
-        os.remove(filepath)
+        self.current_editor().format_file()
 
     def insert_resource(self):
-        dialog = ResourceBrowser()
-        res = dialog.exec()
-        if res == QDialog.Accepted:
-
-            editor = self.current_editor()
-            line, offset = editor.getCursorPosition()
-            old_selection = editor.getSelection()
-            if old_selection == (-1, -1, -1, -1):
-                selection = (line, offset - 1, line, offset + 1)
-            else:
-                selection = (
-                    old_selection[0],
-                    old_selection[1] - 1,
-                    old_selection[2],
-                    old_selection[3] + 1,
-                )
-
-            editor.setSelection(*selection)
-            selected_text = editor.selectedText()
-
-            if selected_text and not (
-                selected_text[-1] == selected_text[0]
-                and selected_text[-1] in ("'", '"')
-            ):
-                editor.setSelection(*old_selection)
-                if old_selection == (-1, -1, -1, -1):
-                    editor.setCursorPosition(line, offset)
-            editor.removeSelectedText()
-            ressource_path = f'"{dialog.icon}"'
-            editor.insert(ressource_path)
-
-            line, offset = editor.getCursorPosition()
-            editor.setCursorPosition(line, offset + len(ressource_path))
+        self.current_editor().insert_resource()
 
     def go_to_next_tab(self):
         self.tab_widget.setCurrentIndex(
