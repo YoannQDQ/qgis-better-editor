@@ -197,15 +197,6 @@ class BetterEditor:
         if not self.black:
             self.format_action.setEnabled(False)
 
-        # Check syntax action
-        self.check_syntax_action = self.toolbar.addAction(
-            QIcon(":/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg"),
-            self.tr("Check syntax"),
-        )
-        self.check_syntax_action.setObjectName("syntax")
-        self.check_syntax_action.triggered.connect(self.check_syntax)
-        self.check_syntax_action.setToolTip(f"<b>{self.check_syntax_action.text()}</b>")
-
         self.patchers = []
         self.patchers.append(Patcher(Editor, MonkeyEditor))
 
@@ -295,9 +286,6 @@ class BetterEditor:
 
             self.jedi = None
 
-    def check_syntax(self):
-        return self.current_editor().syntaxCheck()
-
     def on_initialization_completed(self):
         """ Called after QGIS has completed its initialization """
 
@@ -327,7 +315,6 @@ class BetterEditor:
             "separator",
             "toggleComment",
             "format",
-            "syntax",
             "insertResource",
         ):
             action = self.toolbar.findChild(QAction, action_name)
