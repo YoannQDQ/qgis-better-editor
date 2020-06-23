@@ -6,7 +6,7 @@
 name=Better Editor
 qgisMinimumVersion=3.0
 description=Improve the embedded python editor
-version=1.1.2
+version=1.2.0
 author=Yoann Quenach de Quivillic
 email=yoann.quenach@gmail.com
 
@@ -15,7 +15,10 @@ about=Tweak the default python editor
 
 hasProcessingProvider=no
 
-changelog=1.1.2 2020-06-21
+changelog=1.2.0 2020-06-23
+      * Update Jedi if an obsolete version is installed
+      * Add format on save option
+      1.1.2 2020-06-21
       * Fix Linux compatibility
       1.1.1 2020-06-18
       * Fix crash in case subprocess.CREATE_NO_WINDOW is not defined

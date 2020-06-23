@@ -24,6 +24,7 @@ Settings dialog
  ![Settings dialog](./docs/settings_dialog.png)
  - Hide default QGIS comment & uncomment actions
  - Set the max line length (will be used by the ruler, and black)
+ - Format on save applies black before saving file
  - Configure the ruler
  - Change the default folding indicator (QGIS default is `Plain`)
 
