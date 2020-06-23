@@ -6,12 +6,16 @@ import subprocess
 import importlib
 
 
-def check_pip():
+def check_module(module):
     try:
-        import pip
+        importlib.import_module(module)
     except ModuleNotFoundError:
         return False
     return True
+
+
+def check_pip():
+    return check_module("pip")
 
 
 def install(dep):
