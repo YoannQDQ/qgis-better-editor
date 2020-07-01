@@ -18,7 +18,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
 
         self.resetting = False
         self.settings = settings
-        self.setWindowIcon(QIcon(":/plugins/bettereditor/icon.svg"))
+        self.setWindowIcon(QIcon(":/plugins/bettereditor/icons/icon.svg"))
 
         # Populate folding style combobox
         self.foldingStyleComboBox.addItem(self.tr("None"), QsciScintilla.NoFoldStyle)

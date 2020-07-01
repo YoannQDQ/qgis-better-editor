@@ -1,8 +1,16 @@
 <RCC>
     <qresource prefix="/plugins/bettereditor">
-        <file>icon.svg</file>
-        <file>about.svg</file>
-        <file>wizard.svg</file>
-        <file>clear.svg</file>
+        <file>icons/icon.svg</file>
+        <file>icons/about.svg</file>
+        <file>icons/wizard.svg</file>
+        <file>icons/clear.svg</file>
+        <file>icons/symbol-class.svg</file>
+        <file>icons/symbol-enumerator.svg</file>
+        <file>icons/symbol-key.svg</file>
+        <file>icons/symbol-keyword.svg</file>
+        <file>icons/symbol-method.svg</file>
+        <file>icons/symbol-namespace.svg</file>
+        <file>icons/symbol-variable.svg</file>
+        <file>icons/folder.svg</file>
     </qresource>
 </RCC>

@@ -118,7 +118,7 @@ class BetterEditor:
             self.iface.actionShowPythonDialog().setChecked(False)
 
         self.about_action = QAction(
-            QIcon(":/plugins/bettereditor/about.svg"),
+            QIcon(":/plugins/bettereditor/icons/about.svg"),
             self.tr("About"),
             parent=self.iface.mainWindow(),
         )
@@ -132,7 +132,7 @@ class BetterEditor:
         self.settings_action.triggered.connect(self.show_settings)
 
         self.plugin_menu = self.iface.pluginMenu().addMenu(
-            QIcon(":/plugins/bettereditor/icon.svg"), "Better Editor"
+            QIcon(":/plugins/bettereditor/icons/icon.svg"), "Better Editor"
         )
         self.plugin_menu.addAction(self.about_action)
         self.plugin_menu.addAction(self.settings_action)
@@ -186,7 +186,7 @@ class BetterEditor:
 
         # Add format action
         self.format_action = self.toolbar.addAction(
-            QIcon(r":/plugins/bettereditor/wizard.svg"), self.tr("Format file")
+            QIcon(r":/plugins/bettereditor/icons/wizard.svg"), self.tr("Format file")
         )
         self.format_action.setObjectName("format")
         self.format_action.setShortcut("Ctrl+Alt+F")
@@ -387,7 +387,7 @@ class BetterEditor:
 
         # Used to display plugin icon in the about message box
         bogus = QWidget(self.iface.mainWindow())
-        bogus.setWindowIcon(QIcon(":/plugins/bettereditor/icon.svg"))
+        bogus.setWindowIcon(QIcon(":/plugins/bettereditor/icons/icon.svg"))
 
         cfg = configparser.ConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))

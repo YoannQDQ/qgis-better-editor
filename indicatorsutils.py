@@ -54,7 +54,7 @@ def define_indicators(editor):
     )
 
     editor.markerDefine(
-        QPixmap(":/plugins/bettereditor/clear.svg").scaled(
+        QPixmap(":/plugins/bettereditor/icons/clear.svg").scaled(
             QSize(16, 16), Qt.KeepAspectRatio, Qt.SmoothTransformation
         ),
         editor.MARKER_NUM,
