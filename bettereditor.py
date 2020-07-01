@@ -34,6 +34,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QToolBar,
     QShortcut,
+    QCompleter,
 )
 from PyQt5.Qsci import QsciScintilla
 
@@ -50,7 +51,7 @@ from .dependencies import (
     install,
     check_module,
 )
-from .customclasses import MonkeyEditorTab, MonkeyEditor
+from .customclasses import MonkeyEditorTab, MonkeyEditor, CompletionModel, HintToolTip
 from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, clear_all_indicators
 from .monkeypatch import Patcher
@@ -140,7 +141,7 @@ class BetterEditor:
         self.tab_widget = self.python_console.findChild(EditorTabWidget)
 
         # Connect current
-        self.tab_widget.currentChanged.connect(partial(self.customize_editor, None))
+        self.tab_widget.currentChanged.connect(self.customize_current_editor)
 
         # Tweak zoom shortcuts to prevent them from interfering
         # when typing '|' and '}' with an AZERTY (French) keyboard layout
@@ -197,11 +198,19 @@ class BetterEditor:
         if not self.black:
             self.format_action.setEnabled(False)
 
+        self.project = None
+        if self.jedi:
+            self.project = self.jedi.Project(
+                "", sys_path=sys.path, load_unsafe_extensions=True, smart_sys_path=False
+            )
+
         self.patchers = []
-        self.patchers.append(Patcher(Editor, MonkeyEditor))
+        self.patchers.append(Patcher(Editor, MonkeyEditor, unpatch_on_delete=False))
 
         # MonkeyPatch save
-        self.patchers.append(Patcher(EditorTab, MonkeyEditorTab))
+        self.patchers.append(
+            Patcher(EditorTab, MonkeyEditorTab, unpatch_on_delete=False)
+        )
 
         # Add insert icon from ressource action
         self.insert_resource_action = self.toolbar.addAction(
@@ -311,12 +320,7 @@ class BetterEditor:
         self.set_old_comments_action_visible(True)
 
         # Remove custom actions
-        for action_name in (
-            "separator",
-            "toggleComment",
-            "format",
-            "insertResource",
-        ):
+        for action_name in ("separator", "toggleComment", "format", "insertResource"):
             action = self.toolbar.findChild(QAction, action_name)
             if action:
                 action.deleteLater()
@@ -354,6 +358,7 @@ class BetterEditor:
         for patcher in self.patchers:
             patcher.unpatch()
 
+        self.tab_widget.currentChanged.disconnect(self.customize_current_editor)
         for editor in self.python_console.findChildren(Editor):
             clear_all_indicators(editor)
             self.restore_editor(editor)
@@ -429,6 +434,9 @@ class BetterEditor:
         for editor in self.python_console.findChildren(Editor):
             self.customize_editor(editor)
 
+    def customize_current_editor(self):
+        return self.customize_editor()
+
     def customize_editor(self, editor=None):
         if editor is None:
             editor = self.current_editor()
@@ -436,6 +444,17 @@ class BetterEditor:
         if editor is None:
             return
 
+        editor.project = self.project
+
+        # Disable shortcuts
+        for shortcut in editor.findChildren(QShortcut):
+            shortcut.setEnabled(False)
+
+        editor.setCompleter(QCompleter(editor))
+        editor.completer.setModel(CompletionModel([], editor))
+        editor.hintToolTip = HintToolTip(editor)
+
+        editor.setAutoCompletionSource(QsciScintilla.AcsNone)
         editor.setFolding(
             self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int)
         )
@@ -469,9 +488,18 @@ class BetterEditor:
             )
         )
 
+        # Disable shortcuts
+        for shortcut in editor.findChildren(QShortcut):
+            shortcut.setEnabled(True)
+
         editor.markerDefine(
             QgsApplication.getThemePixmap("console/iconSyntaxErrorConsole.svg"),
             editor.MARKER_NUM,
         )
 
         editor.setAnnotationDisplay(QsciScintilla.AnnotationBoxed)
+        editor.setAutoCompletionSource(QsciScintilla.AcsAll)
+
+        del editor.hintToolTip
+        del editor.completer
+        del editor.project
