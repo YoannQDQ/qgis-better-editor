@@ -13,8 +13,9 @@ from PyQt5.QtCore import (
     QAbstractListModel,
     QModelIndex,
     QSize,
+    QEvent,
 )
-from PyQt5.QtGui import QPalette, QColor, QIcon
+from PyQt5.QtGui import QPalette, QColor, QIcon, QKeySequence, QKeyEvent
 from PyQt5.QtWidgets import (
     QDialog,
     QCompleter,
@@ -178,7 +179,40 @@ class MonkeyEditor:
             line, offset = self.getCursorPosition()
             self.setCursorPosition(line, offset + len(ressource_path))
 
+    def event(self, e):
+        if e.type() == QEvent.ShortcutOverride:
+
+            ctrl = bool(e.modifiers() & Qt.ControlModifier)
+            shift = bool(e.modifiers() & Qt.ShiftModifier)
+
+            # Override Save, SavesAs and Run
+            if (
+                e.matches(QKeySequence.Save)
+                or (ctrl and shift and e.key() == Qt.Key_S)
+                or (ctrl and e.key() == Qt.Key_R)
+            ):
+                e.accept()
+                return True
+
+        return unpatched().event(e)
+
     def keyPressEvent(self, e):
+
+        ctrl = bool(e.modifiers() & Qt.ControlModifier)
+        shift = bool(e.modifiers() & Qt.ShiftModifier)
+
+        # Shortcut overrides
+        if e.matches(QKeySequence.Save):
+            self.parent.save()
+            return
+
+        if ctrl and shift and e.key() == Qt.Key_S:
+            self.parent.tw.saveAs()
+            return
+
+        if ctrl and e.key() == Qt.Key_R:
+            self.runScriptCode()
+            return
 
         if self.completer.popup().isVisible():
             # The following keys are forwarded by the completer to the widget
@@ -191,9 +225,6 @@ class MonkeyEditor:
             ):
                 e.ignore()
                 return  # let the completer do default behavior
-
-        ctrl = bool(e.modifiers() & Qt.ControlModifier)
-        shift = bool(e.modifiers() & Qt.ShiftModifier)
 
         # CTRL+Space
         isShortcut = ctrl and e.key() == Qt.Key_Space

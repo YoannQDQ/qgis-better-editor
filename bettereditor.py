@@ -166,6 +166,15 @@ class BetterEditor:
         self.zoom_out_shortcut.setContext(Qt.WidgetWithChildrenShortcut)
         self.zoom_out_shortcut.activated.connect(action_zoom_out.trigger)
 
+        # Customize buttons tooltips
+        save_button = self.python_console.widget().saveFileButton
+        saveas_button = self.python_console.widget().saveAsFileButton
+        run_button = self.python_console.widget().runScriptEditorButton
+
+        save_button.setToolTip(f"<b>{save_button.text()}</b> (Ctrl+S)")
+        saveas_button.setToolTip(f"<b>{saveas_button.text()}</b> (Ctrl+Shift+S)")
+        run_button.setToolTip(f"<b>{run_button.text()}</b> (Ctrl+R)")
+
         # Create our own toggle comment action
         separator = self.toolbar.addSeparator()
         separator = separator.setObjectName("separator")
@@ -315,6 +324,15 @@ class BetterEditor:
 
         # Delete Settings dialog
         self.settings_dialog.deleteLater()
+
+        # Remove buttons tooltips
+        save_button = self.python_console.widget().saveFileButton
+        saveas_button = self.python_console.widget().saveAsFileButton
+        run_button = self.python_console.widget().runScriptEditorButton
+
+        save_button.setToolTip(save_button.text())
+        saveas_button.setToolTip(saveas_button.text())
+        run_button.setToolTip(run_button.text())
 
         # Show comment actions
         self.set_old_comments_action_visible(True)
