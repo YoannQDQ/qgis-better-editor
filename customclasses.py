@@ -201,19 +201,27 @@ class MonkeyEditor:
         ctrl = bool(e.modifiers() & Qt.ControlModifier)
         shift = bool(e.modifiers() & Qt.ShiftModifier)
 
-        # Shortcut overrides
+        # Ctrl+S: Save
         if e.matches(QKeySequence.Save):
             self.parent.save()
             return
 
+        # Ctrl+Shift+As: Save As
         if ctrl and shift and e.key() == Qt.Key_S:
             self.parent.tw.saveAs()
             return
 
+        # Ctrl+R: Run Script
         if ctrl and e.key() == Qt.Key_R:
             self.runScriptCode()
             return
 
+        # Ctrl+Space: Autocomplete
+        if ctrl and e.key() == Qt.Key_Space:
+            self.autocomplete()
+            return
+
+        # If completer popup is visible, discard those events
         if self.completer.popup().isVisible():
             # The following keys are forwarded by the completer to the widget
             if e.key() in (
@@ -226,41 +234,24 @@ class MonkeyEditor:
                 e.ignore()
                 return  # let the completer do default behavior
 
-        # CTRL+Space
-        isShortcut = ctrl and e.key() == Qt.Key_Space
-
-        if not isShortcut:
-            unpatched().keyPressEvent(e)
-
-        ctrlOrShift = ctrl or shift
-
-        if ctrlOrShift and not e.text():
-            return
-
-        eow = "~!@#$%^&*()_+{}|:\"<>?,/;'[]\\-="
-        # end of word
-        hasModifier = (e.modifiers() != Qt.NoModifier) and not ctrlOrShift
-        completionPrefix = self.textUnderCursor()
+        # Let QSciScintilla handle the keyboard event
+        unpatched().keyPressEvent(e)
 
         if e.text() == ".":
             self.autocomplete()
             return
 
-        if not isShortcut and (
-            hasModifier
-            or not e.text()
-            or len(completionPrefix) < 3
-            or e.text()[-1] in eow
-        ):
+        # end of word
+        eow = "~!@#$%^&*()+{}|:\"<>?,/;'[]\\-="
+
+        prefix = self.textUnderCursor()
+
+        if not e.text() or len(prefix) < 3 or e.text()[-1] in eow:
             self.completer.popup().hide()
             return
 
-        if isShortcut:
-            self.autocomplete()
-            return
-
-        if completionPrefix != self.completer.completionPrefix():
-            self.completer.setCompletionPrefix(completionPrefix)
+        if prefix != self.completer.completionPrefix():
+            self.completer.setCompletionPrefix(prefix)
             if self.completer.completionModel().rowCount() == 0:
                 self.completer.popup().hide()
                 return
@@ -268,7 +259,11 @@ class MonkeyEditor:
                 self.completer.completionModel().index(0, 0)
             )
 
-        if self.completer.popup().isVisible() or not e.text() or not e.text().isalpha():
+        if (
+            self.completer.popup().isVisible()
+            or not e.text()
+            or not e.text().isidentifier()
+        ):
             return
         else:
             self.autocomplete()
@@ -282,6 +277,8 @@ class MonkeyEditor:
             return
         self.insert(completion[-extra:])
         self.setCursorPosition(line, column + extra)
+        if completion.endswith("/"):
+            self.autocomplete()
 
     def textUnderCursor(self):
         line, column = self.getCursorPosition()
@@ -428,7 +425,10 @@ class CompletionModel(QAbstractListModel):
             elif completion.type == "function":
                 return QIcon(":/plugins/bettereditor/icons/symbol-namespace.svg")
             elif completion.type == "path":
-                return QIcon(":/plugins/bettereditor/icons/folder.svg")
+                if name.endswith("/"):
+                    return QIcon(":/plugins/bettereditor/icons/folder.svg")
+                else:
+                    return QIcon(":/plugins/bettereditor/icons/file-1.svg")
             elif completion.type == "statement":
                 return QIcon(":/plugins/bettereditor/icons/symbol-enumerator.svg")
             elif completion.type == "param":

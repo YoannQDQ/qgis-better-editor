@@ -12,5 +12,6 @@
         <file>icons/symbol-namespace.svg</file>
         <file>icons/symbol-variable.svg</file>
         <file>icons/folder.svg</file>
+        <file>icons/file-1.svg</file>
     </qresource>
 </RCC>
