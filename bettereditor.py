@@ -372,14 +372,14 @@ class BetterEditor:
         self.zoom_out_shortcut.setEnabled(False)
         self.zoom_out_shortcut.deleteLater()
 
-        # Revert MonkeyPatch
-        for patcher in self.patchers:
-            patcher.unpatch()
-
         self.tab_widget.currentChanged.disconnect(self.customize_current_editor)
         for editor in self.python_console.findChildren(Editor):
             clear_all_indicators(editor)
             self.restore_editor(editor)
+
+        # Revert MonkeyPatch
+        for patcher in self.patchers:
+            patcher.unpatch()
 
         # Remove menu from plugins menu
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
@@ -495,7 +495,12 @@ class BetterEditor:
         # Change syntax error marker
         define_indicators(editor)
 
+        editor.cursorPositionChanged.connect(editor.signatures)
+
     def restore_editor(self, editor):
+
+        editor.cursorPositionChanged.disconnect(editor.signatures)
+
         editor.setFolding(QsciScintilla.PlainFoldStyle)
         editor.setEdgeMode(QsciScintilla.EdgeLine)
         editor.setEdgeColumn(80)
@@ -518,6 +523,8 @@ class BetterEditor:
         editor.setAnnotationDisplay(QsciScintilla.AnnotationBoxed)
         editor.setAutoCompletionSource(QsciScintilla.AcsAll)
 
+        editor.hintToolTip.deleteLater()
         del editor.hintToolTip
+        editor.completer.deleteLater()
         del editor.completer
         del editor.project

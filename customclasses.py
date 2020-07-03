@@ -232,8 +232,6 @@ class MonkeyEditor:
         if not isShortcut:
             unpatched().keyPressEvent(e)
 
-        self.signatures()
-
         ctrlOrShift = ctrl or shift
 
         if ctrlOrShift and not e.text():
@@ -440,20 +438,21 @@ class CompletionModel(QAbstractListModel):
 
 
 class HintToolTip(QFrame):
-    def __init__(self, editor, parent=None):
+    def __init__(self, parent):
         super().__init__(parent)
         self.setFrameStyle(QFrame.StyledPanel)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
-        self.editor = editor
         palette = self.palette()
         palette.setColor(QPalette.Window, QColor("#fff"))
-        palette.setColor(QPalette.WindowText, QColor("#888"))
-
         self.setPalette(palette)
         self.setWindowFlags(Qt.ToolTip)
         self.label = QLabel()
-        self.label.setFont(editor.font())
+        self.label.setFont(parent.font())
+        palette = self.label.palette()
+        palette.setColor(QPalette.WindowText, QColor("#888"))
+        self.label.setPalette(palette)
+
         layout.addWidget(self.label)
 
     @staticmethod
@@ -469,11 +468,11 @@ class HintToolTip(QFrame):
             if signature.index == i:
                 if type_hint:
                     params.append(
-                        f'<b><u><font color="royalblue">{param.name}</u></b></font>: {type_hint}'
+                        f'<b><u><font color="royalblue">{param.name}</font></u></b>: {type_hint}'
                     )
                 else:
                     params.append(
-                        f'<b><u><font color="royalblue">{param.name}</u></b></font>'
+                        f'<b><u><font color="royalblue">{param.name}</font></u></b>'
                     )
 
             else:
@@ -494,7 +493,7 @@ class HintToolTip(QFrame):
         # print(signature.bracket_start)
 
         self.label.setText(self.signature_to_string(signature))
-        point = self.editor.mapToGlobal(
+        point = self.parent().mapToGlobal(
             QPoint(pos.x(), pos.y() - self.sizeHint().height() - 2)
         )
         self.show()
