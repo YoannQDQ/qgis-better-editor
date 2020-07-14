@@ -42,6 +42,9 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.formatOnSaveCheckBox.setChecked(
             self.settings.value("format_on_save", True, bool)
         )
+        self.autoCompleteSpinBox.setValue(
+            self.settings.value("autocomplete_threshold", 4, int)
+        )
 
         self.rulerCheckBox.setChecked(self.settings.value("ruler_visible", True, bool))
         self.rulerColorButton.setColor(
@@ -59,6 +62,9 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         # Connect signals
         self.hideCommentCheckBox.toggled.connect(self.on_hide_comment_actions_changed)
         self.maxLineLengthSpinBox.valueChanged.connect(self.on_max_length_changed)
+        self.autoCompleteSpinBox.valueChanged.connect(
+            self.on_autocomplete_threshold_changed
+        )
         self.formatOnSaveCheckBox.toggled.connect(self.on_format_on_save_changed)
         self.foldingStyleComboBox.currentIndexChanged.connect(
             self.on_folding_style_changed
@@ -74,6 +80,12 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
     def on_max_length_changed(self, value):
         """ Called whenever the max line length changes """
         self.settings.setValue("max_line_length", value)
+        if not self.resetting:
+            self.settingsChanged.emit()
+
+    def on_autocomplete_threshold_changed(self, value):
+        """ Called whenever the autocomplete threshold changes """
+        self.settings.setValue("autocomplete_threshold", value)
         if not self.resetting:
             self.settingsChanged.emit()
 
@@ -113,6 +125,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.resetting = True
         self.hideCommentCheckBox.setChecked(True)
         self.maxLineLengthSpinBox.setValue(88)
+        self.autoCompleteSpinBox.setValue(4)
         self.formatOnSaveCheckBox.setChecked(True)
         self.foldingStyleComboBox.setCurrentIndex(3)
         self.rulerCheckBox.setChecked(True)

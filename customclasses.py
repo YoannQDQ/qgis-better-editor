@@ -69,7 +69,9 @@ class MonkeyEditor:
         with open(filepath, "w") as out:
             out.write(self.text().replace("\r\n", "\n"))
 
-        line_length = self.settings.value("max_line_length", 88, int)
+        settings = QSettings()
+        settings.beginGroup("plugins/bettereditor")
+        line_length = settings.value("max_line_length", 88, int)
 
         cmd = ["python3", "-m", "black", filepath, "-l", str(line_length)]
         # Prevents the call to black from spawning an console on Windows.
@@ -271,6 +273,9 @@ class MonkeyEditor:
         if prefix != self.completer.completionPrefix():
             self.completer.setCompletionPrefix(prefix)
 
+        settings = QSettings()
+        settings.beginGroup("plugins/bettereditor")
+        threshold = settings.value("autocomplete_threshold", 4, int)
         # Jedi completion model is already accurate
         if self.completer.modelprefix and prefix.lower().startswith(
             self.completer.modelprefix.lower()
@@ -289,7 +294,7 @@ class MonkeyEditor:
                 return
 
         # Jedi completion model must be updated
-        elif len(prefix) > 3 and e.text() and e.text().isidentifier():
+        elif len(prefix) >= threshold and e.text() and e.text().isidentifier():
             self.autocomplete()
         else:
             self.completer.popup().hide()

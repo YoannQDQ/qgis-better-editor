@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>267</width>
-    <height>184</height>
+    <height>228</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -53,24 +53,31 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_3">
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Folding indicator style</string>
+        <string>Format on save</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="foldingStyleComboBox"/>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="formatOnSaveCheckBox">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
         <string>Show ruler</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="4" column="1">
       <widget class="QCheckBox" name="rulerCheckBox">
        <property name="text">
         <string/>
@@ -80,7 +87,14 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Ruler color</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
       <widget class="QgsColorButton" name="rulerColorButton">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -110,27 +124,33 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_5">
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>Ruler color</string>
+        <string>Folding indicator style</string>
        </property>
       </widget>
      </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="foldingStyleComboBox"/>
+     </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label_6">
+      <widget class="QLabel" name="label_7">
        <property name="text">
-        <string>Format on save</string>
+        <string>Autocomplete threshold</string>
        </property>
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QCheckBox" name="formatOnSaveCheckBox">
-       <property name="text">
-        <string/>
+      <widget class="QSpinBox" name="autoCompleteSpinBox">
+       <property name="minimum">
+        <number>1</number>
        </property>
-       <property name="checked">
-        <bool>true</bool>
+       <property name="maximum">
+        <number>8</number>
+       </property>
+       <property name="value">
+        <number>4</number>
        </property>
       </widget>
      </item>
@@ -150,11 +170,35 @@
     </spacer>
    </item>
    <item>
-    <widget class="QPushButton" name="restoreButton">
-     <property name="text">
-      <string>Restore default values</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="okButton">
+       <property name="text">
+        <string>Ok</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="restoreButton">
+       <property name="text">
+        <string>Restore default values</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
@@ -166,5 +210,22 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>okButton</sender>
+   <signal>clicked()</signal>
+   <receiver>SettingsDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>96</x>
+     <y>200</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>133</x>
+     <y>110</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
