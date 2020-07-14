@@ -2,7 +2,7 @@
 name=Better Editor
 qgisMinimumVersion=3.0
 description=Improve the embedded python editor
-version=1.2.0
+version=1.3.0
 author=Yoann Quenach de Quivillic
 email=yoann.quenach@gmail.com
 about=Tweak the default python editor
