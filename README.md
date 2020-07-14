@@ -4,15 +4,20 @@ Better Editor (QGIS plugin)
 
 This plugin improves the embedded Python editor with several useful features.
 
-- Tab navigation with `Ctrl+PgDown` and `Ctrl+PgUp`
+- Smart autocompletion and call tips with Jedi
+
+
 - Replace comment / uncomment action with a single well-behaved Toggle comment action (`Ctrl+:`)
 
 ![toggleComment](./docs/toggle.gif)
-- Format code with [black formatter](https://github.com/psf/black) (`Ctrl+Alt+F`)
+- Format code with [black formatter](https://github.com/psf/black) (`Ctrl+Alt+F` or Format on save)
 
 ![formatCode](./docs/black.gif)
 - Insert icon from QGIS resources: useful for quick prototyping
 - Tweak some QGIS shortcuts which prevented user from entering `}` and `|` in the console when keyboard used AZERTY (French) layout
+- Pressing Ctrl+S and Ctrl+Shift+S triggers file save when editor has focus
+- Pressing Ctrl+R triggers script run
+- Tab navigation with `Ctrl+PgDown` and `Ctrl+PgUp`
 - Multiple syntax error check with [jedi](https://github.com/davidhalter/jedi).
 
 ![syntax check](./docs/syntax_check.png)

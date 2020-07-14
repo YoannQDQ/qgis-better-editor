@@ -7,7 +7,6 @@ import tempfile
 from PyQt5.QtCore import (
     QSettings,
     Qt,
-    QStringListModel,
     QPoint,
     QRect,
     QAbstractListModel,
@@ -15,20 +14,20 @@ from PyQt5.QtCore import (
     QSize,
     QEvent,
 )
-from PyQt5.QtGui import QPalette, QColor, QIcon, QKeySequence, QKeyEvent
+from PyQt5.QtGui import QPalette, QColor, QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QDialog,
     QCompleter,
-    QToolTip,
     QLabel,
     QFrame,
     QStackedWidget,
     QVBoxLayout,
+    QTextEdit,
+    QListView,
 )
 from PyQt5.Qsci import QsciScintilla
 
 from qgis.utils import iface
-from qgis.core import QgsVectorLayer
 
 from .dependencies import check_module
 from .indicatorsutils import check_syntax
@@ -180,6 +179,9 @@ class MonkeyEditor:
             self.setCursorPosition(line, offset + len(ressource_path))
 
     def event(self, e):
+        if e.type() in (QEvent.FocusOut, QEvent.MouseButtonPress):
+            if hasattr(self, "hintToolTip"):
+                self.hintToolTip.hide()
         if e.type() == QEvent.ShortcutOverride:
 
             ctrl = bool(e.modifiers() & Qt.ControlModifier)
@@ -218,8 +220,20 @@ class MonkeyEditor:
 
         # Ctrl+Space: Autocomplete
         if ctrl and e.key() == Qt.Key_Space:
-            self.autocomplete()
+            self.signatures()
+            char = self.character_before_cursor()
+            if char.isidentifier() or char in (r"\/."):
+                self.autocomplete()
             return
+
+        # If press escape and call tips widget is shown, hide it
+
+        if (
+            e.key() == Qt.Key_Escape
+            and hasattr(self, "hintToolTip")
+            and self.hintToolTip.isVisible()
+        ):
+            self.hintToolTip.hide()
 
         # If completer popup is visible, discard those events
         if self.completer.popup().isVisible():
@@ -236,64 +250,82 @@ class MonkeyEditor:
 
         # Let QSciScintilla handle the keyboard event
         unpatched().keyPressEvent(e)
+        prefix = self.text_under_cursor()
+
+        if e.text() == "(":
+            self.signatures()
 
         if e.text() == ".":
             self.autocomplete()
             return
 
         # end of word
-        eow = "~!@#$%^&*()+{}|:\"<>?,/;'[]\\-="
+        eow = "~!@#$%^&*()+{}|:\"<>?,/;'[]\\-= "
 
-        prefix = self.textUnderCursor()
+        last_char = self.character_before_cursor()
 
-        if not e.text() or len(prefix) < 3 or e.text()[-1] in eow:
+        if last_char in eow:
             self.completer.popup().hide()
             return
 
         if prefix != self.completer.completionPrefix():
             self.completer.setCompletionPrefix(prefix)
+
+        # Jedi completion model is already accurate
+        if self.completer.modelprefix and prefix.lower().startswith(
+            self.completer.modelprefix.lower()
+        ):
+
+            # No more suggested completion: hide popup
             if self.completer.completionModel().rowCount() == 0:
                 self.completer.popup().hide()
                 return
-            self.completer.popup().setCurrentIndex(
-                self.completer.completionModel().index(0, 0)
-            )
+            # Else, show popup select the first suggestion
+            else:
+                self.completer.popup().setCurrentIndex(
+                    self.completer.completionModel().index(0, 0)
+                )
+                self.completer.popup().show()
+                return
 
-        if (
-            self.completer.popup().isVisible()
-            or not e.text()
-            or not e.text().isidentifier()
-        ):
-            return
-        else:
+        # Jedi completion model must be updated
+        elif len(prefix) > 3 and e.text() and e.text().isidentifier():
             self.autocomplete()
+        else:
+            self.completer.popup().hide()
 
-    def insertCompletion(self, completion):
+    def on_position_changed(self):
+        if hasattr(self, "hintToolTip") and self.hintToolTip.isVisible():
+            self.signatures()
+
+    def insert_completion(self, completion):
         line, column = self.getCursorPosition()
-        extra = len(completion) - len(self.completer.completionPrefix())
-
-        # If completion is equal to current text, do nothing
-        if extra == 0:
-            return
-        self.insert(completion[-extra:])
-        self.setCursorPosition(line, column + extra)
+        self.setSelection(
+            line, column - len(self.completer.completionPrefix()), line, column
+        )
+        self.replaceSelectedText(completion)
         if completion.endswith("/"):
             self.autocomplete()
 
-    def textUnderCursor(self):
+    def character_before_cursor(self):
+        pos = self.positionFromLineIndex(*self.getCursorPosition())
+        return self.text(pos - 1, pos)
+
+    def text_under_cursor(self):
         line, column = self.getCursorPosition()
         return self.wordAtLineIndex(line, column)
 
-    def setCompleter(self, completer):
+    def set_completer(self, completer):
         if hasattr(self, "completer") and self.completer:
             self.completer.disconnect()
 
         self.completer = completer
+        self.completer.modelprefix = ""
         self.completer.setWidget(self)
         self.completer.setCompletionMode(QCompleter.PopupCompletion)
         self.completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
-        self.completer.setCaseSensitivity(Qt.CaseSensitive)
-        self.completer.activated[str].connect(self.insertCompletion)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.completer.activated[str].connect(self.insert_completion)
 
     def signatures(self):
         if not check_module("jedi", "0.17"):
@@ -313,18 +345,25 @@ class MonkeyEditor:
             "iface: QgisInterface = iface",
         ]
         init_text = "\n".join(init_lines) + "\n"
-        script = jedi.Script(code=init_text + self.text(), project=self.project)
-        res = script.get_signatures(line + 1 + len(init_lines), column)
+        script = jedi.Interpreter(
+            code=init_text + self.text(), namespaces=(globals(), locals())
+        )
+        try:
+            res = script.get_signatures(line + 1 + len(init_lines), column)
+        except TypeError:
+            res = None
         if not res:
             self.hintToolTip.hide()
             return
 
-        prefix = self.textUnderCursor()
-        pos = self.positionFromLineIndex(line, column - len(prefix))
+        bracket_line, bracket_column = res[0].bracket_start
+        pos = self.positionFromLineIndex(
+            bracket_line - 1 - len(init_lines), bracket_column
+        )
         x = self.SendScintilla(QsciScintilla.SCI_POINTXFROMPOSITION, 0, pos)
         y = self.SendScintilla(QsciScintilla.SCI_POINTYFROMPOSITION, 0, pos)
 
-        self.hintToolTip.showSignatures(res, QPoint(x, y))
+        self.hintToolTip.show_signatures(res, QPoint(x, y))
 
     def autocomplete(self):
         if not check_module("jedi", "0.17"):
@@ -348,14 +387,15 @@ class MonkeyEditor:
         script = jedi.Script(code=init_text + self.text(), project=self.project)
         completions = script.complete(line + 1 + len(init_lines), column)
 
+        prefix = self.text_under_cursor()
+        self.completer.modelprefix = prefix
+
         if not completions:
             self.completer.popup().hide()
             self.completer.model().setCompletions([])
             return
 
         self.completer.model().setCompletions(completions)
-
-        prefix = self.textUnderCursor()
         self.completer.setCompletionPrefix(prefix)
 
         pos = self.positionFromLineIndex(line, column - len(prefix))
@@ -363,13 +403,13 @@ class MonkeyEditor:
         y = self.SendScintilla(QsciScintilla.SCI_POINTYFROMPOSITION, 0, pos)
         line_height = self.SendScintilla(QsciScintilla.SCI_TEXTHEIGHT, line)
 
-        cr = QRect(0, 0, 450, 300)
-        cr.setWidth(
+        content_rect = QRect(0, 0, 450, 300)
+        content_rect.setWidth(
             self.completer.popup().sizeHintForColumn(0)
             + self.completer.popup().verticalScrollBar().sizeHint().width()
             + 30
         )
-        self.completer.complete(cr)
+        self.completer.complete(content_rect)
         self.completer.popup().setFont(self.font())
         self.completer.popup().move(self.mapToGlobal(QPoint(x, y + line_height + 2)))
 
@@ -377,6 +417,7 @@ class MonkeyEditor:
             self.completer.completionModel().index(0, 0)
         )
         self.completer.popup().setUniformItemSizes(True)
+        self.completer.popup().setLayoutMode(QListView.Batched)
         self.completer.popup().setIconSize(QSize(16, 16))
 
         p = self.completer.popup().palette()
@@ -437,6 +478,28 @@ class CompletionModel(QAbstractListModel):
                 return QIcon(":/plugins/bettereditor/icons/symbol-method.svg")
 
 
+SCROLL_STYLESHEET = """
+QScrollBar:vertical {
+    border: None;
+    width: 8px;
+    background: #eee;
+    margin: 0 0 0 0;
+}
+QScrollBar::handle {
+  background: #aaa;
+}
+QScrollBar::handle:hover {
+  background: #888;
+}
+QScrollBar::add-line {
+  border: None;
+}
+QScrollBar::sub-line {
+  border: None;
+}
+"""
+
+
 class HintToolTip(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -447,13 +510,31 @@ class HintToolTip(QFrame):
         palette.setColor(QPalette.Window, QColor("#fff"))
         self.setPalette(palette)
         self.setWindowFlags(Qt.ToolTip)
-        self.label = QLabel()
-        self.label.setFont(parent.font())
-        palette = self.label.palette()
-        palette.setColor(QPalette.WindowText, QColor("#888"))
-        self.label.setPalette(palette)
 
-        layout.addWidget(self.label)
+        self.line = QFrame(self)
+        self.line.setFrameShape(QFrame.HLine)
+        self.line.setFrameShadow(QFrame.Sunken)
+
+        self.title_label = QLabel()
+        self.title_label.setMinimumWidth(300)
+        self.title_label.setFont(parent.font())
+        self.docstring_textedit = QTextEdit(self)
+        self.docstring_textedit.setReadOnly(True)
+        self.docstring_textedit.setFont(parent.font())
+
+        palette = self.docstring_textedit.palette()
+        palette.setColor(QPalette.WindowText, QColor("#888"))
+        palette.setColor(QPalette.Text, QColor("#888"))
+        self.docstring_textedit.setPalette(palette)
+        self.docstring_textedit.setFrameShape(QFrame.NoFrame)
+        self.docstring_textedit.document().setDocumentMargin(0)
+        self.title_label.setPalette(palette)
+
+        layout.setSpacing(2)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.line)
+        layout.addWidget(self.docstring_textedit)
+        layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
 
     @staticmethod
     def signature_to_string(signature):
@@ -481,20 +562,34 @@ class HintToolTip(QFrame):
                 else:
                     params.append(param.name)
         html = f'{name}({", ".join(params)})'
+
+        docstring = ""
         if signature.docstring(True, True):
-            docstring = signature.docstring(True, True)[:400].replace("\n", "<br>")
-            html += f"<hr>{docstring}"
+            docstring = signature.docstring(True, True).replace("\n", "<br>")
 
-        return html
+        return html, docstring
 
-    def showSignatures(self, signatures, pos: QPoint):
+    def show_signatures(self, signatures, pos: QPoint):
         signature = signatures[0]
 
-        # print(signature.bracket_start)
+        text, docstring = self.signature_to_string(signature)
 
-        self.label.setText(self.signature_to_string(signature))
+        self.title_label.setText(text)
+        if not docstring:
+            self.docstring_textedit.hide()
+            self.line.hide()
+        else:
+            self.docstring_textedit.show()
+            self.line.show()
+            self.docstring_textedit.setHtml(docstring)
+            self.docstring_textedit.document().adjustSize()
+            height = self.docstring_textedit.document().size().height()
+            self.docstring_textedit.setFixedHeight(min(150, height))
+
         point = self.parent().mapToGlobal(
             QPoint(pos.x(), pos.y() - self.sizeHint().height() - 2)
         )
         self.show()
         self.move(point.x(), point.y())
+
+        self.docstring_textedit.setStyleSheet(SCROLL_STYLESHEET)

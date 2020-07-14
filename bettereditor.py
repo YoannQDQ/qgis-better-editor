@@ -22,11 +22,10 @@
 """
 import os
 import sys
-from functools import partial
 import configparser
 
 
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QPoint
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (
     QAction,
@@ -384,7 +383,7 @@ class BetterEditor:
         # Remove menu from plugins menu
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
 
-    def current_editor(self):
+    def current_editor(self) -> Editor:
         return self.tab_widget.currentWidget().findChild(Editor)
 
     def toggle_comment(self):
@@ -455,23 +454,23 @@ class BetterEditor:
     def customize_current_editor(self):
         return self.customize_editor()
 
-    def customize_editor(self, editor=None):
+    def customize_editor(self, editor: Editor = None):
         if editor is None:
             editor = self.current_editor()
 
         if editor is None:
             return
-
         editor.project = self.project
 
         # Disable shortcuts
         for shortcut in editor.findChildren(QShortcut):
             shortcut.setEnabled(False)
 
-        editor.setCompleter(QCompleter(editor))
+        editor.set_completer(QCompleter(editor))
         editor.completer.setModel(CompletionModel([], editor))
         editor.hintToolTip = HintToolTip(editor)
 
+        editor.setCallTipsStyle(QsciScintilla.CallTipsNone)
         editor.setAutoCompletionSource(QsciScintilla.AcsNone)
         editor.setFolding(
             self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int)
@@ -495,12 +494,10 @@ class BetterEditor:
         # Change syntax error marker
         define_indicators(editor)
 
-        editor.cursorPositionChanged.connect(editor.signatures)
+        editor.cursorPositionChanged.connect(editor.on_position_changed)
 
-    def restore_editor(self, editor):
-
-        editor.cursorPositionChanged.disconnect(editor.signatures)
-
+    def restore_editor(self, editor: Editor):
+        editor.cursorPositionChanged.disconnect(editor.on_position_changed)
         editor.setFolding(QsciScintilla.PlainFoldStyle)
         editor.setEdgeMode(QsciScintilla.EdgeLine)
         editor.setEdgeColumn(80)
@@ -521,6 +518,7 @@ class BetterEditor:
         )
 
         editor.setAnnotationDisplay(QsciScintilla.AnnotationBoxed)
+        editor.setCallTipsStyle(QsciScintilla.CallTipsNoContext)
         editor.setAutoCompletionSource(QsciScintilla.AcsAll)
 
         editor.hintToolTip.deleteLater()
