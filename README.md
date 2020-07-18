@@ -5,7 +5,7 @@ Better Editor (QGIS plugin)
 This plugin improves the embedded Python editor with several useful features.
 
 - Smart autocompletion and call tips with Jedi
-
+![jedi](./docs/jedi.gif)
 
 - Replace comment / uncomment action with a single well-behaved Toggle comment action (`Ctrl+:`)
 
