@@ -25,7 +25,7 @@ import sys
 import configparser
 
 
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTimer
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (
     QAction,
@@ -50,9 +50,11 @@ from .dependencies import (
     install,
     check_module,
 )
-from .customclasses import MonkeyEditorTab, MonkeyEditor, CompletionModel, HintToolTip
+from .customclasses import MonkeyEditorTab, MonkeyEditor
 from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, clear_all_indicators
+from .completionmodel import CompletionModel
+from .calltips import CallTips
 from .monkeypatch import Patcher
 from .resources import *
 
@@ -384,6 +386,8 @@ class BetterEditor:
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
 
     def current_editor(self) -> Editor:
+        if not self.tab_widget.currentWidget():
+            return None
         return self.tab_widget.currentWidget().findChild(Editor)
 
     def toggle_comment(self):
@@ -468,7 +472,11 @@ class BetterEditor:
 
         editor.set_completer(QCompleter(editor))
         editor.completer.setModel(CompletionModel([], editor))
-        editor.hintToolTip = HintToolTip(editor)
+        editor.callTips = CallTips(editor)
+        editor.callTipsTimer = QTimer(editor)
+        editor.callTipsTimer.setSingleShot(True)
+        editor.callTipsTimer.setInterval(500)
+        editor.callTipsTimer.timeout.connect(editor.update_calltips)
 
         editor.setCallTipsStyle(QsciScintilla.CallTipsNone)
         editor.setAutoCompletionSource(QsciScintilla.AcsNone)
@@ -521,8 +529,10 @@ class BetterEditor:
         editor.setCallTipsStyle(QsciScintilla.CallTipsNoContext)
         editor.setAutoCompletionSource(QsciScintilla.AcsAll)
 
-        editor.hintToolTip.deleteLater()
-        del editor.hintToolTip
+        editor.callTips.deleteLater()
+        del editor.callTips
+        editor.callTipsTimer.deleteLater()
+        del editor.callTipsTimer
         editor.completer.deleteLater()
         del editor.completer
         del editor.project

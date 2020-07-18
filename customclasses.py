@@ -9,20 +9,13 @@ from PyQt5.QtCore import (
     Qt,
     QPoint,
     QRect,
-    QAbstractListModel,
-    QModelIndex,
     QSize,
     QEvent,
 )
-from PyQt5.QtGui import QPalette, QColor, QIcon, QKeySequence
+from PyQt5.QtGui import QPalette, QColor, QKeySequence
 from PyQt5.QtWidgets import (
     QDialog,
     QCompleter,
-    QLabel,
-    QFrame,
-    QStackedWidget,
-    QVBoxLayout,
-    QTextEdit,
     QListView,
 )
 from PyQt5.Qsci import QsciScintilla
@@ -182,8 +175,8 @@ class MonkeyEditor:
 
     def event(self, e):
         if e.type() in (QEvent.FocusOut, QEvent.MouseButtonPress):
-            if hasattr(self, "hintToolTip"):
-                self.hintToolTip.hide()
+            if hasattr(self, "callTips"):
+                self.callTips.hide()
         if e.type() == QEvent.ShortcutOverride:
 
             ctrl = bool(e.modifiers() & Qt.ControlModifier)
@@ -222,7 +215,7 @@ class MonkeyEditor:
 
         # Ctrl+Space: Autocomplete
         if ctrl and e.key() == Qt.Key_Space:
-            self.signatures()
+            self.update_calltips()
             char = self.character_before_cursor()
             if char.isidentifier() or char in (r"\/."):
                 self.autocomplete()
@@ -232,10 +225,10 @@ class MonkeyEditor:
 
         if (
             e.key() == Qt.Key_Escape
-            and hasattr(self, "hintToolTip")
-            and self.hintToolTip.isVisible()
+            and hasattr(self, "callTips")
+            and self.callTips.isVisible()
         ):
-            self.hintToolTip.hide()
+            self.callTips.hide()
 
         # If completer popup is visible, discard those events
         if self.completer.popup().isVisible():
@@ -255,7 +248,7 @@ class MonkeyEditor:
         prefix = self.text_under_cursor()
 
         if e.text() == "(":
-            self.signatures()
+            self.callTipsTimer.start()
 
         if e.text() == ".":
             self.autocomplete()
@@ -300,8 +293,8 @@ class MonkeyEditor:
             self.completer.popup().hide()
 
     def on_position_changed(self):
-        if hasattr(self, "hintToolTip") and self.hintToolTip.isVisible():
-            self.signatures()
+        if hasattr(self, "callTips") and self.callTips.isVisible():
+            self.callTipsTimer.start()
 
     def insert_completion(self, completion):
         line, column = self.getCursorPosition()
@@ -332,7 +325,7 @@ class MonkeyEditor:
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.activated[str].connect(self.insert_completion)
 
-    def signatures(self):
+    def update_calltips(self):
         if not check_module("jedi", "0.17"):
             return
         import jedi
@@ -358,7 +351,7 @@ class MonkeyEditor:
         except TypeError:
             res = None
         if not res:
-            self.hintToolTip.hide()
+            self.callTips.hide()
             return
 
         bracket_line, bracket_column = res[0].bracket_start
@@ -368,7 +361,7 @@ class MonkeyEditor:
         x = self.SendScintilla(QsciScintilla.SCI_POINTXFROMPOSITION, 0, pos)
         y = self.SendScintilla(QsciScintilla.SCI_POINTYFROMPOSITION, 0, pos)
 
-        self.hintToolTip.show_signatures(res, QPoint(x, y))
+        self.callTips.show_signatures(res, QPoint(x, y))
 
     def autocomplete(self):
         if not check_module("jedi", "0.17"):
@@ -430,171 +423,3 @@ class MonkeyEditor:
         p.setColor(QPalette.HighlightedText, QColor("black"))
         self.completer.popup().setPalette(p)
 
-
-class CompletionModel(QAbstractListModel):
-    def __init__(self, completions=None, parent=None):
-        super().__init__(parent)
-        if not completions:
-            self.completions = []
-        else:
-            self.completions = completions
-
-    def rowCount(self, index=QModelIndex()):
-        return len(self.completions)
-
-    def setCompletions(self, completions):
-        self.beginResetModel()
-        self.completions = completions
-        self.endResetModel()
-
-    def data(self, index, role=Qt.DisplayRole):
-
-        if not index.isValid():
-            return
-
-        completion = self.completions[index.row()]
-
-        if completion.type == "path" and completion.name.endswith("\\"):
-            name = f"{completion.name[:-1]}/"
-        else:
-            name = completion.name
-
-        if role == Qt.DisplayRole:
-            return name
-        elif role == Qt.EditRole:
-            return name
-        elif role == Qt.DecorationRole:
-            if completion.type == "class":
-                return QIcon(":/plugins/bettereditor/icons/symbol-class.svg")
-            elif completion.type == "keyword":
-                return QIcon(":/plugins/bettereditor/icons/symbol-keyword.svg")
-            elif completion.type == "function":
-                return QIcon(":/plugins/bettereditor/icons/symbol-namespace.svg")
-            elif completion.type == "path":
-                if name.endswith("/"):
-                    return QIcon(":/plugins/bettereditor/icons/folder.svg")
-                else:
-                    return QIcon(":/plugins/bettereditor/icons/file-1.svg")
-            elif completion.type == "statement":
-                return QIcon(":/plugins/bettereditor/icons/symbol-enumerator.svg")
-            elif completion.type == "param":
-                return QIcon(":/plugins/bettereditor/icons/symbol-variable.svg")
-            else:
-                return QIcon(":/plugins/bettereditor/icons/symbol-method.svg")
-
-
-SCROLL_STYLESHEET = """
-QScrollBar:vertical {
-    border: None;
-    width: 8px;
-    background: #eee;
-    margin: 0 0 0 0;
-}
-QScrollBar::handle {
-  background: #aaa;
-}
-QScrollBar::handle:hover {
-  background: #888;
-}
-QScrollBar::add-line {
-  border: None;
-}
-QScrollBar::sub-line {
-  border: None;
-}
-"""
-
-
-class HintToolTip(QFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFrameStyle(QFrame.StyledPanel)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
-        palette = self.palette()
-        palette.setColor(QPalette.Window, QColor("#fff"))
-        self.setPalette(palette)
-        self.setWindowFlags(Qt.ToolTip)
-
-        self.line = QFrame(self)
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Sunken)
-
-        self.title_label = QLabel()
-        self.title_label.setMinimumWidth(300)
-        self.title_label.setFont(parent.font())
-        self.docstring_textedit = QTextEdit(self)
-        self.docstring_textedit.setReadOnly(True)
-        self.docstring_textedit.setFont(parent.font())
-
-        palette = self.docstring_textedit.palette()
-        palette.setColor(QPalette.WindowText, QColor("#888"))
-        palette.setColor(QPalette.Text, QColor("#888"))
-        self.docstring_textedit.setPalette(palette)
-        self.docstring_textedit.setFrameShape(QFrame.NoFrame)
-        self.docstring_textedit.document().setDocumentMargin(0)
-        self.title_label.setPalette(palette)
-
-        layout.setSpacing(2)
-        layout.addWidget(self.title_label)
-        layout.addWidget(self.line)
-        layout.addWidget(self.docstring_textedit)
-        layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
-
-    @staticmethod
-    def signature_to_string(signature):
-        name = signature.name
-        params = []
-        for i, param in enumerate(signature.params):
-            try:
-                type_hint = param.get_type_hint()
-            except TypeError:
-                type_hint = None
-
-            if signature.index == i:
-                if type_hint:
-                    params.append(
-                        f'<b><u><font color="royalblue">{param.name}</font></u></b>: {type_hint}'
-                    )
-                else:
-                    params.append(
-                        f'<b><u><font color="royalblue">{param.name}</font></u></b>'
-                    )
-
-            else:
-                if type_hint:
-                    params.append(f"{param.name}: {type_hint}")
-                else:
-                    params.append(param.name)
-        html = f'{name}({", ".join(params)})'
-
-        docstring = ""
-        if signature.docstring(True, True):
-            docstring = signature.docstring(True, True).replace("\n", "<br>")
-
-        return html, docstring
-
-    def show_signatures(self, signatures, pos: QPoint):
-        signature = signatures[0]
-
-        text, docstring = self.signature_to_string(signature)
-
-        self.title_label.setText(text)
-        if not docstring:
-            self.docstring_textedit.hide()
-            self.line.hide()
-        else:
-            self.docstring_textedit.show()
-            self.line.show()
-            self.docstring_textedit.setHtml(docstring)
-            self.docstring_textedit.document().adjustSize()
-            height = self.docstring_textedit.document().size().height()
-            self.docstring_textedit.setFixedHeight(min(150, height))
-
-        point = self.parent().mapToGlobal(
-            QPoint(pos.x(), pos.y() - self.sizeHint().height() - 2)
-        )
-        self.show()
-        self.move(point.x(), point.y())
-
-        self.docstring_textedit.setStyleSheet(SCROLL_STYLESHEET)
