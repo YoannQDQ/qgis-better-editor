@@ -11,21 +11,25 @@ from PyQt5.QtCore import (
     QRect,
     QSize,
     QEvent,
+    QTimer,
+    QCoreApplication,
 )
-from PyQt5.QtGui import QPalette, QColor, QKeySequence
-from PyQt5.QtWidgets import (
-    QDialog,
-    QCompleter,
-    QListView,
-)
+from PyQt5.QtGui import QPalette, QColor, QKeySequence, QIcon
+from PyQt5.QtWidgets import QDialog, QCompleter, QListView, QShortcut
 from PyQt5.Qsci import QsciScintilla
 
 from qgis.utils import iface
 
 from .dependencies import check_module
-from .indicatorsutils import check_syntax
 from .monkeypatch import unpatched
 from .resourcebrowserimpl import ResourceBrowser
+from .indicatorsutils import define_indicators, check_syntax
+from .completionmodel import CompletionModel
+from .calltips import CallTips
+
+
+def tr(message):
+    return QCoreApplication.translate("BetterEditor", message)
 
 
 class MonkeyEditorTab:
@@ -181,12 +185,14 @@ class MonkeyEditor:
 
             ctrl = bool(e.modifiers() & Qt.ControlModifier)
             shift = bool(e.modifiers() & Qt.ShiftModifier)
+            alt = bool(e.modifiers() & Qt.AltModifier)
 
             # Override Save, SavesAs and Run
             if (
                 e.matches(QKeySequence.Save)
                 or (ctrl and shift and e.key() == Qt.Key_S)
                 or (ctrl and e.key() == Qt.Key_R)
+                or (ctrl and alt and e.key() == Qt.Key_F)
             ):
                 e.accept()
                 return True
@@ -197,21 +203,31 @@ class MonkeyEditor:
 
         ctrl = bool(e.modifiers() & Qt.ControlModifier)
         shift = bool(e.modifiers() & Qt.ShiftModifier)
+        alt = bool(e.modifiers() & Qt.AltModifier)
 
         # Ctrl+S: Save
         if e.matches(QKeySequence.Save):
-            self.parent.save()
+            self.save()
             return
 
         # Ctrl+Shift+As: Save As
         if ctrl and shift and e.key() == Qt.Key_S:
-            self.parent.tw.saveAs()
+            self.saveAs()
             return
 
         # Ctrl+R: Run Script
         if ctrl and e.key() == Qt.Key_R:
             self.runScriptCode()
             return
+
+        # Ctrl+: Toggle comment
+        if ctrl and e.key() == Qt.Key_Colon:
+            self.toggle_comment()
+            return
+
+        # Ctrl+Alt+F: Format
+        if ctrl and alt and e.key() == Qt.Key_F:
+            self.format_file()
 
         # Ctrl+Space: Autocomplete
         if ctrl and e.key() == Qt.Key_Space:
@@ -291,6 +307,12 @@ class MonkeyEditor:
             self.autocomplete()
         else:
             self.completer.popup().hide()
+
+    def save(self):
+        self.parent.save()
+
+    def saveAs(self):
+        self.parent.tw.saveAs()
 
     def on_position_changed(self):
         if hasattr(self, "callTips") and self.callTips.isVisible():
@@ -422,4 +444,108 @@ class MonkeyEditor:
         p.setColor(QPalette.Highlight, QColor("#ccddff"))
         p.setColor(QPalette.HighlightedText, QColor("black"))
         self.completer.popup().setPalette(p)
+
+
+class MonkeyScriptEditor(MonkeyEditor):
+    def customize(self):
+        # Disable shortcuts
+        for shortcut in self.findChildren(QShortcut):
+            shortcut.setEnabled(False)
+        self.bufferMarkerLine = []
+        self.set_completer(QCompleter(self))
+        self.completer.setModel(CompletionModel([], self))
+        self.callTips = CallTips(self)
+        self.callTipsTimer = QTimer(self)
+        self.callTipsTimer.setSingleShot(True)
+        self.callTipsTimer.setInterval(500)
+        self.callTipsTimer.timeout.connect(self.update_calltips)
+
+        self.setCallTipsStyle(QsciScintilla.CallTipsNone)
+        self.setAutoCompletionSource(QsciScintilla.AcsNone)
+        self.setFolding(
+            self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int)
+        )
+
+        # Add a small margin after the indicator (if folding is not Plain or None)
+        if self.folding() > 1:
+            self.setMarginWidth(3, "0")
+        else:
+            self.setMarginWidth(3, "")
+
+        if self.settings.value("ruler_visible", True, bool):
+            self.setEdgeMode(QsciScintilla.EdgeLine)
+            self.setEdgeColumn(self.settings.value("max_line_length", 88, int))
+            self.setEdgeColor(
+                self.settings.value("ruler_color", QColor("#00aaff"), QColor)
+            )
+        else:
+            self.setEdgeMode(QsciScintilla.EdgeNone)
+
+        # Change syntax error marker
+        define_indicators(self)
+
+        self.cursorPositionChanged.connect(self.on_position_changed)
+
+    def call_parent_method(self, name, *args, **kwargs):
+        temp = self.parent()
+        while temp:
+            if hasattr(temp, name):
+                return getattr(temp, name)(*args, **kwargs)
+            temp = temp.parent()
+
+    def save(self):
+        self.call_parent_method("save")
+
+    def saveAs(self):
+        self.call_parent_method("saveAs")
+
+    def runScriptCode(self):
+        if self.syntaxCheck():
+            self.call_parent_method("runAlgorithm")
+
+
+class MonkeyScriptEditorDialog:
+    def show(self):
+        self.customize()
+        unpatched().show()
+
+    def customize(self):
+        if hasattr(self.editor, "completer"):
+            return
+        self.editor.customize()
+
+        self.toolBar.addSeparator()
+        self.toggle_comment_action = self.toolBar.addAction(
+            QIcon(":/images/themes/default/console/iconCommentEditorConsole.svg"),
+            tr("Toggle Comment"),
+        )
+        self.toggle_comment_action.setObjectName("toggleComment")
+        self.toggle_comment_action.triggered.connect(self.editor.toggle_comment)
+        self.toggle_comment_action.setShortcut("Ctrl+:")
+        self.toggle_comment_action.setToolTip(
+            f"<b>{self.toggle_comment_action.text()}</b> ({self.toggle_comment_action.shortcut().toString()})"
+        )
+        self.toolBar.addAction(self.toggle_comment_action)
+
+        if check_module("black"):
+            self.format_action = self.toolBar.addAction(
+                QIcon(":/plugins/bettereditor/icons/wizard.svg"), tr("Format file")
+            )
+            self.format_action.setObjectName("format")
+            self.format_action.setShortcut("Ctrl+Alt+F")
+            self.format_action.triggered.connect(self.editor.format_file)
+            self.format_action.setToolTip(
+                f"<b>{self.format_action.text()}</b> ({self.format_action.shortcut().toString()})"
+            )
+
+    def saveScript(self, saveAs: bool):
+        settings = QSettings()
+        settings.beginGroup("plugins/bettereditor")
+        if settings.value("format_on_save", True, bool):
+            self.editor.format_file()
+        unpatched().saveScript(saveAs)
+
+    def runAlgorithm(self):
+        if self.editor.syntaxCheck():
+            unpatched().runAlgorithm()
 

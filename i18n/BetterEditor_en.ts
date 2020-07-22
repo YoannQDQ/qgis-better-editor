@@ -2,84 +2,97 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en">
 <context>
-    <name>BetterEditor</name>
+    <name>@default</name>
     <message>
-        <location filename="../bettereditor.py" line="120"/>
-        <source>About</source>
-        <translation>About</translation>
-    </message>
-    <message>
-        <location filename="../bettereditor.py" line="127"/>
-        <source>Settings</source>
-        <translation>Settings</translation>
-    </message>
-    <message>
-        <location filename="../bettereditor.py" line="180"/>
+        <location filename="../customclasses.py" line="519"/>
         <source>Toggle Comment</source>
         <translation>Toggle Comment</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="197"/>
+        <location filename="../customclasses.py" line="532"/>
+        <source>Format file</source>
+        <translation>Format file</translation>
+    </message>
+</context>
+<context>
+    <name>BetterEditor</name>
+    <message>
+        <location filename="../bettereditor.py" line="129"/>
+        <source>About</source>
+        <translation>About</translation>
+    </message>
+    <message>
+        <location filename="../bettereditor.py" line="136"/>
+        <source>Settings</source>
+        <translation>Settings</translation>
+    </message>
+    <message>
+        <location filename="../bettereditor.py" line="189"/>
+        <source>Toggle Comment</source>
+        <translation>Toggle Comment</translation>
+    </message>
+    <message>
+        <location filename="../bettereditor.py" line="206"/>
         <source>Format file</source>
         <translation>Format file</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="224"/>
+        <location filename="../bettereditor.py" line="243"/>
         <source>Insert resource path</source>
         <translation>Insert resource path</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="418"/>
+        <location filename="../bettereditor.py" line="442"/>
         <source>About Better Editor</source>
         <translation>About Better Editor</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="418"/>
+        <location filename="../bettereditor.py" line="442"/>
         <source>Source code</source>
         <translation>Source code</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="418"/>
+        <location filename="../bettereditor.py" line="442"/>
         <source>Documentation</source>
         <translation>Documentation</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="418"/>
+        <location filename="../bettereditor.py" line="442"/>
         <source>Report issues</source>
         <translation>Report issues</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="270"/>
+        <location filename="../bettereditor.py" line="289"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="248"/>
+        <location filename="../bettereditor.py" line="267"/>
         <source>Pip is not installed. Try to get it, then restart QGIS, or  manually install &lt;b&gt;black&lt;/b&gt; and &lt;b&gt;jedi&lt;/b&gt;</source>
         <translation>Pip is not installed. Try to get it, then restart QGIS, or  manually install &lt;b&gt;black&lt;/b&gt; and &lt;b&gt;jedi&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="258"/>
+        <location filename="../bettereditor.py" line="277"/>
         <source>Unable to load &lt;b&gt;black&lt;/b&gt;. Formatting will be disabled. You could try to manually install &lt;b&gt;black&lt;/b&gt; with pip</source>
         <translation>Unable to load &lt;b&gt;black&lt;/b&gt;. Formatting will be disabled. You could try to manually install &lt;b&gt;black&lt;/b&gt; with pip</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="270"/>
+        <location filename="../bettereditor.py" line="289"/>
         <source>Unable to load &lt;b&gt;jedi&lt;/b&gt;. Multi syntax error check will be disabled. You could try to manually install &lt;b&gt;jedi&lt;/b&gt; with pip</source>
         <translation>Unable to load &lt;b&gt;jedi&lt;/b&gt;. Multi syntax error check will be disabled. You could try to manually install &lt;b&gt;jedi&lt;/b&gt; with pip</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="296"/>
+        <location filename="../bettereditor.py" line="315"/>
         <source>Information</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="285"/>
+        <location filename="../bettereditor.py" line="304"/>
         <source>&lt;b&gt;jedi&lt;/b&gt; version is {0} and BetterEditor needs {1}. Do you want to upgrade &lt;b&gt;jedi&lt;/b&gt;?&lt;br&gt;&lt;b&gt;Warning:&lt;/b&gt; it could cause old code relying on the obsolete &lt;b&gt;jedi&lt;/b&gt; to stop working correctly.</source>
         <translation>&lt;b&gt;jedi&lt;/b&gt; version is {0} and BetterEditor needs {1}. Do you want to upgrade &lt;b&gt;jedi&lt;/b&gt;?&lt;br&gt;&lt;b&gt;Warning:&lt;/b&gt; it could cause old code relying on the obsolete &lt;b&gt;jedi&lt;/b&gt; to stop working correctly.</translation>
     </message>
     <message>
-        <location filename="../bettereditor.py" line="296"/>
+        <location filename="../bettereditor.py" line="315"/>
         <source>Jedi was upgraded. You need to restart QGIS to fully use BetterEditor</source>
         <translation>Jedi was upgraded. You need to restart QGIS to fully use BetterEditor</translation>
     </message>
