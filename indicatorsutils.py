@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt, QSettings, QSize
 from PyQt5.Qsci import QsciScintilla, QsciStyle
 from PyQt5.QtGui import QColor, QPixmap, QFont
 
+from console.console_editor import Editor
 from .dependencies import check_module
 
 
@@ -33,7 +34,7 @@ def check_syntax(editor, *args, **kwargs):
             editor.bufferMarkerLine.append(eline)
         syntax_error(editor, eline, ecolumn, error.until_line - 1, error.until_column)
 
-        editor.markerAdd(eline, editor.MARKER_NUM)
+        editor.markerAdd(eline, Editor.MARKER_NUM)
         editor.annotate(eline, edescr, editor.style_annotation)
         editor.setCursorPosition(eline, ecolumn - 1)
         editor.ensureLineVisible(eline)
@@ -57,7 +58,7 @@ def define_indicators(editor):
         QPixmap(":/plugins/bettereditor/icons/clear.svg").scaled(
             QSize(16, 16), Qt.KeepAspectRatio, Qt.SmoothTransformation
         ),
-        editor.MARKER_NUM,
+        Editor.MARKER_NUM,
     )
     editor.setAnnotationDisplay(QsciScintilla.AnnotationStandard)
 

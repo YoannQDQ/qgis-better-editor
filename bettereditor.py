@@ -41,6 +41,8 @@ from qgis.core import QgsApplication
 
 from console.console import PythonConsole
 from console.console_editor import Editor, EditorTabWidget, EditorTab
+from processing.script.ScriptEdit import ScriptEdit
+from processing.script.ScriptEditorDialog import ScriptEditorDialog
 
 
 from .dependencies import (
@@ -50,7 +52,12 @@ from .dependencies import (
     install,
     check_module,
 )
-from .customclasses import MonkeyEditorTab, MonkeyEditor
+from .customclasses import (
+    MonkeyEditorTab,
+    MonkeyEditor,
+    MonkeyScriptEditor,
+    MonkeyScriptEditorDialog,
+)
 from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, clear_all_indicators
 from .completionmodel import CompletionModel
@@ -216,6 +223,16 @@ class BetterEditor:
 
         self.patchers = []
         self.patchers.append(Patcher(Editor, MonkeyEditor, unpatch_on_delete=False))
+        ScriptEdit.project = self.project
+        ScriptEdit.settings = self.settings
+        self.patchers.append(
+            Patcher(ScriptEdit, MonkeyScriptEditor, unpatch_on_delete=False)
+        )
+        self.patchers.append(
+            Patcher(
+                ScriptEditorDialog, MonkeyScriptEditorDialog, unpatch_on_delete=False
+            )
+        )
 
         # MonkeyPatch save
         self.patchers.append(
@@ -381,6 +398,9 @@ class BetterEditor:
         # Revert MonkeyPatch
         for patcher in self.patchers:
             patcher.unpatch()
+
+        del ScriptEdit.project
+        del ScriptEdit.settings
 
         # Remove menu from plugins menu
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
