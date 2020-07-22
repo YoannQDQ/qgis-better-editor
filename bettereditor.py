@@ -239,6 +239,11 @@ class BetterEditor:
             Patcher(EditorTab, MonkeyEditorTab, unpatch_on_delete=False)
         )
 
+        self.oldAutoCloseBracketEditor = QSettings().value(
+            "pythonConsole/autoCloseBracketEditor", False, bool
+        )
+        QSettings().setValue("pythonConsole/autoCloseBracketEditor", False)
+
         # Add insert icon from ressource action
         self.insert_resource_action = self.toolbar.addAction(
             QIcon(":/images/themes/default/propertyicons/diagram.svg"),
@@ -404,6 +409,11 @@ class BetterEditor:
 
         # Remove menu from plugins menu
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
+
+        # Reactivate old autoCloseBracketEditor
+        QSettings().setValue(
+            "pythonConsole/autoCloseBracketEditor", self.oldAutoCloseBracketEditor
+        )
 
     def current_editor(self) -> Editor:
         if not self.tab_widget.currentWidget():

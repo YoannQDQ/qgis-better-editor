@@ -267,6 +267,55 @@ class MonkeyEditor:
                 e.ignore()
                 return  # let the completer do default behavior
 
+        # Handle closing and opening
+        last_char = self.character_before_cursor()
+        next_char = self.character_after_cursor()
+        line, column = self.getCursorPosition()
+
+        openings = "([{'\""
+        closings = ")]}'\""
+        pairs = list(zip(openings, closings))
+
+        if not self.hasSelectedText():
+            if e.key() == Qt.Key_Backspace:
+                pair = (last_char, next_char)
+                if pair in pairs:
+                    self.setSelection(line, column - 1, line, column + 1)
+                    self.removeSelectedText()
+                    return
+
+            if e.text() and e.text() in closings and next_char == e.text():
+                self.setSelection(line, column, line, column + 1)
+                self.removeSelectedText()
+
+            elif self.code_context() and e.text() and e.text() in openings:
+                # Allow to enter """ and '''
+                if not (e.text() in "'\"" and last_char == e.text()):
+                    i = openings.index(e.text())
+                    self.insert("".join(pairs[i]))
+                    self.setCursorPosition(line, column + 1)
+
+                    if e.text() == "(":
+                        self.callTipsTimer.start()
+                    return
+
+        elif e.text() and e.text() in openings:
+            i = openings.index(e.text())
+            start_line, start_pos, end_line, end_pos = self.getSelection()
+
+            # Multi line quotes
+            if start_line != end_line and e.text() in "'\"":
+                self.replaceSelectedText(
+                    f"{openings[i]*3}{self.selectedText()}{closings[i]*3}"
+                )
+                self.setSelection(start_line, start_pos + 3, end_line, end_pos + 3)
+            else:
+                self.replaceSelectedText(
+                    f"{openings[i]}{self.selectedText()}{closings[i]}"
+                )
+                self.setSelection(start_line, start_pos + 1, end_line, end_pos + 1)
+            return
+
         # Let QSciScintilla handle the keyboard event
         unpatched().keyPressEvent(e)
         prefix = self.text_under_cursor()
@@ -280,8 +329,6 @@ class MonkeyEditor:
 
         # end of word
         eow = "~!@#$%^&*()+{}|:\"<>?,/;'[]\\-= "
-
-        last_char = self.character_before_cursor()
 
         if last_char in eow:
             self.completer.popup().hide()
@@ -316,6 +363,55 @@ class MonkeyEditor:
         else:
             self.completer.popup().hide()
 
+    def code_context(self):
+        """ Return true if current position is not inside a string or a comment """
+        line, column = self.getCursorPosition()
+        inside_string = False
+        single_quote = False
+        double_quote = False
+        triple_single_quote = False
+        triple_double_quote = False
+
+        pos = self.positionFromLineIndex(line, 0)
+        for i in range(column):
+            char = self.text(pos + i, pos + i + 1)
+            if not inside_string:
+                if char == "#":
+                    return False
+                if char == "'":
+                    if self.text(pos + i - 2, pos + i + 1) == "'''":
+                        triple_single_quote = True
+                        inside_string = True
+
+                    inside_string = True
+                    single_quote = True
+                if char == '"':
+                    if self.text(pos + i - 2, pos + i + 1) == '"""':
+                        triple_double_quote = True
+                        inside_string = True
+                    inside_string = True
+                    double_quote = True
+            else:
+                if char == "'":
+                    if single_quote:
+                        inside_string = False
+                        single_quote = False
+                    if triple_single_quote:
+                        if self.text(pos + i - 2, pos + i + 1) == "'''":
+                            inside_string = False
+                            triple_single_quote = False
+
+                if char == '"':
+                    if double_quote:
+                        inside_string = False
+                        double_quote = False
+                    if triple_double_quote:
+                        if self.text(pos + i - 2, pos + i + 1) == '"""':
+                            inside_string = False
+                            triple_double_quote = False
+
+        return not inside_string
+
     def save(self):
         self.parent.save()
 
@@ -338,6 +434,10 @@ class MonkeyEditor:
     def character_before_cursor(self):
         pos = self.positionFromLineIndex(*self.getCursorPosition())
         return self.text(pos - 1, pos)
+
+    def character_after_cursor(self):
+        pos = self.positionFromLineIndex(*self.getCursorPosition())
+        return self.text(pos, pos + 1)
 
     def text_under_cursor(self):
         line, column = self.getCursorPosition()
