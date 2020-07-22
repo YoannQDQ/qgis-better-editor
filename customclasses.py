@@ -193,6 +193,8 @@ class MonkeyEditor:
                 or (ctrl and shift and e.key() == Qt.Key_S)
                 or (ctrl and e.key() == Qt.Key_R)
                 or (ctrl and alt and e.key() == Qt.Key_F)
+                or (e.key() == Qt.Key_F12)
+                or (e.key() == Qt.Key_F2)
             ):
                 e.accept()
                 return True
@@ -228,6 +230,12 @@ class MonkeyEditor:
         # Ctrl+Alt+F: Format
         if ctrl and alt and e.key() == Qt.Key_F:
             self.format_file()
+            return
+
+        # F12 or F2: Go to definition
+        if e.key() in (Qt.Key_F12, Qt.Key_F2):
+            self.goto()
+            return
 
         # Ctrl+Space: Autocomplete
         if ctrl and e.key() == Qt.Key_Space:
@@ -384,6 +392,22 @@ class MonkeyEditor:
         y = self.SendScintilla(QsciScintilla.SCI_POINTYFROMPOSITION, 0, pos)
 
         self.callTips.show_signatures(res, QPoint(x, y))
+
+    def goto(self):
+        if not check_module("jedi", "0.17"):
+            return
+        import jedi
+
+        line, column = self.getCursorPosition()
+        script = jedi.Script(code=self.text(), project=self.project)
+        names = script.goto(line + 1, column)
+        if not names:
+            return
+        definition_pos = names[0].get_definition_start_position()
+        if definition_pos:
+            line = definition_pos[0] - 1
+            column = definition_pos[1]
+            self.setCursorPosition(line, column)
 
     def autocomplete(self):
         if not check_module("jedi", "0.17"):
