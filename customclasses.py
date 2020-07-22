@@ -4,7 +4,16 @@ import os
 import subprocess
 import tempfile
 
-from PyQt5.QtCore import QSettings, Qt, QPoint, QRect, QSize, QEvent, QTimer
+from PyQt5.QtCore import (
+    QSettings,
+    Qt,
+    QPoint,
+    QRect,
+    QSize,
+    QEvent,
+    QTimer,
+    QCoreApplication,
+)
 from PyQt5.QtGui import QPalette, QColor, QKeySequence, QIcon
 from PyQt5.QtWidgets import QDialog, QCompleter, QListView, QShortcut
 from PyQt5.Qsci import QsciScintilla
@@ -17,6 +26,10 @@ from .resourcebrowserimpl import ResourceBrowser
 from .indicatorsutils import define_indicators, check_syntax
 from .completionmodel import CompletionModel
 from .calltips import CallTips
+
+
+def tr(message):
+    return QCoreApplication.translate("BetterEditor", message)
 
 
 class MonkeyEditorTab:
@@ -504,7 +517,7 @@ class MonkeyScriptEditorDialog:
         self.toolBar.addSeparator()
         self.toggle_comment_action = self.toolBar.addAction(
             QIcon(":/images/themes/default/console/iconCommentEditorConsole.svg"),
-            self.tr("Toggle Comment"),
+            tr("Toggle Comment"),
         )
         self.toggle_comment_action.setObjectName("toggleComment")
         self.toggle_comment_action.triggered.connect(self.editor.toggle_comment)
@@ -516,7 +529,7 @@ class MonkeyScriptEditorDialog:
 
         if check_module("black"):
             self.format_action = self.toolBar.addAction(
-                QIcon(":/plugins/bettereditor/icons/wizard.svg"), self.tr("Format file")
+                QIcon(":/plugins/bettereditor/icons/wizard.svg"), tr("Format file")
             )
             self.format_action.setObjectName("format")
             self.format_action.setShortcut("Ctrl+Alt+F")
