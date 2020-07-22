@@ -13,6 +13,8 @@ This plugin improves the embedded Python editor with several useful features.
 - Format code with [black formatter](https://github.com/psf/black) (`Ctrl+Alt+F` or Format on save)
 
 ![formatCode](./docs/black.gif)
+- Better handling of `[{('""')}]` : automatic insertion and deletion
+- Goto definition: press F12 or F2 will go to the definition of the word under the cursor (works only within the script)
 - Insert icon from QGIS resources: useful for quick prototyping
 - Tweak some QGIS shortcuts which prevented user from entering `}` and `|` in the console when keyboard used AZERTY (French) layout
 - Pressing Ctrl+S and Ctrl+Shift+S triggers file save when editor has focus

@@ -2,7 +2,7 @@
 name=Better Editor
 qgisMinimumVersion=3.0
 description=Improve the embedded python editor
-version=1.4.0
+version=1.5.0
 author=Yoann Quenach de Quivillic
 email=yoann.quenach@gmail.com
 about=Tweak the default python editor
@@ -10,7 +10,10 @@ about=Tweak the default python editor
 
 hasProcessingProvider=no
 
-changelog=1.4.0 2020-07-22
+changelog=1.5.0 2020-07-23
+      * Smart opening and closing of [{("''")}]
+      * Goto definition (press F2 or F12)
+      1.4.0 2020-07-22
       * Better Editor features now also available in the Processing Script Editor
       1.3.0 2020-07-18
       * Add smart autocomplete using Jedi
