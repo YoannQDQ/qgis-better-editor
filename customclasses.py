@@ -3,6 +3,8 @@
 import os
 import subprocess
 import tempfile
+import tokenize
+from io import BytesIO
 
 from PyQt5.QtCore import (
     QSettings,
@@ -509,6 +511,21 @@ class MonkeyEditor:
             column = definition_pos[1]
             self.setCursorPosition(line, column)
 
+    def get_words(self):
+        tokens = tokenize.tokenize(BytesIO(self.text().encode("utf-8")).readline)
+        names = {token.string for token in tokens if token.type == 1}
+        return names
+
+    def word_completions(self):
+        return sorted(
+            (
+                WordCompletion(word)
+                for word in self.get_words()
+                if word != self.text_under_cursor()
+            ),
+            key=lambda x: x.name.lower(),
+        )
+
     def autocomplete(self):
         if not check_module("jedi", "0.17"):
             return
@@ -533,6 +550,9 @@ class MonkeyEditor:
 
         prefix = self.text_under_cursor()
         self.completer.modelprefix = prefix
+
+        if not completions and prefix:
+            completions = self.word_completions()
 
         if not completions:
             self.completer.popup().hide()
@@ -673,3 +693,8 @@ class MonkeyScriptEditorDialog:
         if self.editor.syntaxCheck():
             unpatched().runAlgorithm()
 
+
+class WordCompletion:
+    def __init__(self, name):
+        self.name = name
+        self.type = "name"

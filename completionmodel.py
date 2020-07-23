@@ -50,5 +50,7 @@ class CompletionModel(QAbstractListModel):
                 return QIcon(":/plugins/bettereditor/icons/symbol-enumerator.svg")
             elif completion.type == "param":
                 return QIcon(":/plugins/bettereditor/icons/symbol-variable.svg")
+            elif completion.type == "name":
+                return QIcon(":/plugins/bettereditor/icons/symbol-key.svg")
             else:
                 return QIcon(":/plugins/bettereditor/icons/symbol-method.svg")
