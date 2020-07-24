@@ -9,47 +9,76 @@ MonkeyPatching tools
 
 import inspect
 import types
+import contextlib
 from functools import wraps
 
 
-class Patcher:
-    """ Monkey Patcher. Applies a Monkey Class on a single instance or a whole class """
+PRIVATE_KEY_PREFIX = "monkey"
+MONKEY_DICT_NAME = "_originals"
 
-    def __init__(
-        self, patched_object, monkey_class, patch_now=True, unpatch_on_delete=True
+
+class MissingValue:
+    pass
+
+
+def patch(patched_object, monkey_class, repatch=False):
+
+    if hasattr(patched_object, MONKEY_DICT_NAME):
+        if not repatch:
+            return
+    else:
+        setattr(patched_object, MONKEY_DICT_NAME, {})
+
+    original_dict = getattr(patched_object, MONKEY_DICT_NAME)
+    class_patch = inspect.isclass(patched_object)
+
+    for method_name, method in inspect.getmembers(
+        monkey_class, predicate=inspect.isfunction
     ):
+        original_method = getattr(patched_object, method_name, MissingValue)
 
-        self.class_patch = inspect.isclass(patched_object)
-        self.patched_object = patched_object
-        self.monkey_class = monkey_class
-        self.unpatch_on_delete = unpatch_on_delete
+        if method_name.startswith("__"):
+            key_name = PRIVATE_KEY_PREFIX + method_name
+        else:
+            key_name = method_name
 
-        self.originals = {}
-        if patch_now:
-            self.patch()
+        original_dict.setdefault(key_name, original_method)
 
-    def __del__(self):
-        if self.unpatch_on_delete:
-            self.unpatch()
+        if not class_patch:
+            method = types.MethodType(method, patched_object)
+        setattr(patched_object, method_name, method)
 
-    def patch(self):
-        for method_name, method in inspect.getmembers(
-            self.monkey_class, predicate=inspect.isfunction
-        ):
-            original_method = getattr(self.patched_object, method_name, None)
-            self.originals[method_name] = original_method
+    for method_name, method in inspect.getmembers(
+        monkey_class, predicate=inspect.isfunction
+    ):
+        original_method = getattr(patched_object, method_name, MissingValue)
 
-            if not self.class_patch:
-                method = types.MethodType(method, self.patched_object)
-            setattr(self.patched_object, method_name, method)
-        setattr(self.patched_object, "_originals", self.originals)
+        if method_name.startswith("__"):
+            key_name = PRIVATE_KEY_PREFIX + method_name
+        else:
+            key_name = method_name
 
-    def unpatch(self):
-        for method_name, method in self.originals.items():
-            if method is None:
-                delattr(self.patched_object, method_name)
-            else:
-                setattr(self.patched_object, method_name, method)
+        original_dict.setdefault(key_name, original_method)
+
+        if not class_patch:
+            method = types.MethodType(method, patched_object)
+        setattr(patched_object, method_name, method)
+
+
+def unpatch(obj):
+    original_dict = getattr(obj, MONKEY_DICT_NAME, None)
+    if original_dict is None:
+        return
+
+    for method_name, method in original_dict.items():
+        if method_name.startswith(PRIVATE_KEY_PREFIX + "__"):
+            method_name = method_name[: len(PRIVATE_KEY_PREFIX)]
+        if method is MissingValue:
+            delattr(obj, method_name)
+        else:
+            setattr(obj, method_name, method)
+
+    delattr(obj, MONKEY_DICT_NAME)
 
 
 def unpatched():
@@ -64,35 +93,30 @@ def unpatched():
             self.patched_instance = patched_instance
 
         def __getattr__(self, attrname):
-            if attrname in self.patched_instance._originals:
-                func = self.patched_instance._originals[attrname]
+            original_dict = getattr(self.patched_instance, MONKEY_DICT_NAME, {})
+            if attrname in original_dict:
+                func = original_dict[attrname]
                 # Patched instance
                 if inspect.ismethod(func):
                     return func
                 # Patched class
                 else:
                     return types.MethodType(
-                        self.patched_instance._originals[attrname],
-                        self.patched_instance,
+                        original_dict[attrname], self.patched_instance,
                     )
             return getattr(self.patched_instance, attrname)
 
     return Wrapper(self)
 
 
-class monkey:
-    """ Monkey patch context manager """
-
-    def __init__(self, patched_object, monkey_cls):
-        self.patcher = Patcher(patched_object, monkey_cls)
-
-    def __enter__(self):
-        """ Return the Patcher object to allow manual patch / unpatch"""
-        return self.patcher
-
-    def __exit__(self, exception_type, value, traceback):
-        """ Do nothing, object will be unpatched on self.patch deletion"""
-        pass
+@contextlib.contextmanager
+def monkey(patched_object, monkey_cls):
+    """Changes working directory and returns to previous on exit."""
+    patch(patched_object, monkey_cls)
+    try:
+        yield
+    finally:
+        unpatch(patched_object)
 
 
 def decorator(patched_cls, monkey_cls):
@@ -107,3 +131,27 @@ def decorator(patched_cls, monkey_cls):
         return wrapper
 
     return inner_decorator
+
+
+class Patcher:
+    """ Monkey Patcher. Applies a Monkey Class on a single instance or a whole class """
+
+    def __init__(
+        self, patched_object, monkey_class, patch_now=True, unpatch_on_delete=True
+    ):
+        self.class_patch = inspect.isclass(patched_object)
+        self.patched_object = patched_object
+        self.monkey_class = monkey_class
+        self.unpatch_on_delete = unpatch_on_delete
+        if patch_now:
+            self.patch()
+
+    def __del__(self):
+        if self.unpatch_on_delete:
+            self.unpatch()
+
+    def patch(self):
+        patch(self.patched_object, self.monkey_class)
+
+    def unpatch(self):
+        unpatch(self.patched_object)

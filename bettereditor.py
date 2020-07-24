@@ -62,7 +62,7 @@ from .settingsdialogimpl import SettingsDialog
 from .indicatorsutils import define_indicators, clear_all_indicators
 from .completionmodel import CompletionModel
 from .calltips import CallTips
-from .monkeypatch import Patcher
+from .monkeypatch import patch, unpatch
 from .resources import *
 
 
@@ -221,23 +221,12 @@ class BetterEditor:
                 "", sys_path=sys.path, load_unsafe_extensions=True, smart_sys_path=False
             )
 
-        self.patchers = []
-        self.patchers.append(Patcher(Editor, MonkeyEditor, unpatch_on_delete=False))
+        patch(Editor, MonkeyEditor)
+        patch(EditorTab, MonkeyEditorTab)
+        patch(ScriptEdit, MonkeyScriptEditor)
+        patch(ScriptEditorDialog, MonkeyScriptEditorDialog)
         ScriptEdit.project = self.project
         ScriptEdit.settings = self.settings
-        self.patchers.append(
-            Patcher(ScriptEdit, MonkeyScriptEditor, unpatch_on_delete=False)
-        )
-        self.patchers.append(
-            Patcher(
-                ScriptEditorDialog, MonkeyScriptEditorDialog, unpatch_on_delete=False
-            )
-        )
-
-        # MonkeyPatch save
-        self.patchers.append(
-            Patcher(EditorTab, MonkeyEditorTab, unpatch_on_delete=False)
-        )
 
         self.oldAutoCloseBracketEditor = QSettings().value(
             "pythonConsole/autoCloseBracketEditor", False, bool
@@ -401,8 +390,10 @@ class BetterEditor:
             self.restore_editor(editor)
 
         # Revert MonkeyPatch
-        for patcher in self.patchers:
-            patcher.unpatch()
+        unpatch(Editor)
+        unpatch(EditorTab)
+        unpatch(ScriptEdit)
+        unpatch(ScriptEditorDialog)
 
         del ScriptEdit.project
         del ScriptEdit.settings

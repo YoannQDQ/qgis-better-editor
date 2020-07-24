@@ -631,6 +631,7 @@ class MonkeyScriptEditor(MonkeyEditor):
         self.cursorPositionChanged.connect(self.on_position_changed)
 
     def call_parent_method(self, name, *args, **kwargs):
+        """ Follow the parent hierarchy to find a method named <name> and call it"""
         temp = self.parent()
         while temp:
             if hasattr(temp, name):
@@ -638,26 +639,35 @@ class MonkeyScriptEditor(MonkeyEditor):
             temp = temp.parent()
 
     def save(self):
+        """ Will be called when Ctrl+S is pressed (see keyPressEvent)"""
         self.call_parent_method("save")
 
     def saveAs(self):
+        """ Will be called when Ctrl+Shift+S is pressed (see keyPressEvent)"""
         self.call_parent_method("saveAs")
 
     def runScriptCode(self):
-        if self.syntaxCheck():
-            self.call_parent_method("runAlgorithm")
+        """ Will be called when Ctrl+R is pressed (see keyPressEvent)"""
+        self.call_parent_method("runAlgorithm")
 
 
 class MonkeyScriptEditorDialog:
     def show(self):
+        """ Customize the dialog and its editor before actualy showing it """
         self.customize()
         unpatched().show()
 
     def customize(self):
+        """ Some init needed by BetterEditor"""
+
+        # Already patched : do nothing
         if hasattr(self.editor, "completer"):
             return
+
+        # Patch the Editor (QsciScintilla)
         self.editor.customize()
 
+        # Add toggle comment and format actions
         self.toolBar.addSeparator()
         self.toggle_comment_action = self.toolBar.addAction(
             QIcon(":/images/themes/default/console/iconCommentEditorConsole.svg"),
@@ -683,6 +693,7 @@ class MonkeyScriptEditorDialog:
             )
 
     def saveScript(self, saveAs: bool):
+        """ Format file before saving """
         settings = QSettings()
         settings.beginGroup("plugins/bettereditor")
         if settings.value("format_on_save", True, bool):
@@ -690,11 +701,14 @@ class MonkeyScriptEditorDialog:
         unpatched().saveScript(saveAs)
 
     def runAlgorithm(self):
+        """ Check syntax before calling the actual method """
         if self.editor.syntaxCheck():
             unpatched().runAlgorithm()
 
 
 class WordCompletion:
+    """ Stub to an actual Jedi Completion. Used in word_completions"""
+
     def __init__(self, name):
         self.name = name
         self.type = "name"
