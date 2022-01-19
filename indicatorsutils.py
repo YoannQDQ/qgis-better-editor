@@ -7,6 +7,7 @@ from .dependencies import check_module
 
 
 SYNTAX_ERROR_STYLE = 100
+MARKER_NUMBER = 6
 
 
 def check_syntax(editor, *args, **kwargs):
@@ -30,11 +31,8 @@ def check_syntax(editor, *args, **kwargs):
         eline = error.line - 1
         ecolumn = error.column
         edescr = error._parso_error.message
-        if eline not in editor.bufferMarkerLine:
-            editor.bufferMarkerLine.append(eline)
         syntax_error(editor, eline, ecolumn, error.until_line - 1, error.until_column)
-
-        editor.markerAdd(eline, Editor.MARKER_NUM)
+        editor.markerAdd(eline, MARKER_NUMBER)
         editor.annotate(eline, edescr, editor.style_annotation)
         editor.setCursorPosition(eline, ecolumn - 1)
         editor.ensureLineVisible(eline)
@@ -58,7 +56,7 @@ def define_indicators(editor):
         QPixmap(":/plugins/bettereditor/icons/clear.svg").scaled(
             QSize(16, 16), Qt.KeepAspectRatio, Qt.SmoothTransformation
         ),
-        Editor.MARKER_NUM,
+        MARKER_NUMBER,
     )
     editor.setAnnotationDisplay(QsciScintilla.AnnotationStandard)
 

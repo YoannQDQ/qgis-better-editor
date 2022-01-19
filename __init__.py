@@ -25,8 +25,7 @@
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """Load LayerTreeIcons class from file layertreeicons.
-
+    """
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """

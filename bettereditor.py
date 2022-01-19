@@ -59,7 +59,7 @@ from .customclasses import (
     MonkeyScriptEditorDialog,
 )
 from .settingsdialogimpl import SettingsDialog
-from .indicatorsutils import define_indicators, clear_all_indicators
+from .indicatorsutils import define_indicators, clear_all_indicators, MARKER_NUMBER
 from .completionmodel import CompletionModel
 from .calltips import CallTips
 from .monkeypatch import patch, unpatch
@@ -83,9 +83,7 @@ class BetterEditor:
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir, "i18n", "BetterEditor_{}.qm".format(locale)
-        )
+        locale_path = os.path.join(self.plugin_dir, "i18n", "BetterEditor_{}.qm".format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -217,9 +215,7 @@ class BetterEditor:
 
         self.project = None
         if self.jedi:
-            self.project = self.jedi.Project(
-                "", sys_path=sys.path, load_unsafe_extensions=True, smart_sys_path=False
-            )
+            self.project = self.jedi.Project("", sys_path=sys.path, load_unsafe_extensions=True, smart_sys_path=False)
 
         patch(Editor, MonkeyEditor)
         patch(EditorTab, MonkeyEditorTab)
@@ -228,9 +224,7 @@ class BetterEditor:
         ScriptEdit.project = self.project
         ScriptEdit.settings = self.settings
 
-        self.oldAutoCloseBracketEditor = QSettings().value(
-            "pythonConsole/autoCloseBracketEditor", False, bool
-        )
+        self.oldAutoCloseBracketEditor = QSettings().value("pythonConsole/autoCloseBracketEditor", False, bool)
         QSettings().setValue("pythonConsole/autoCloseBracketEditor", False)
 
         # Add insert icon from ressource action
@@ -240,9 +234,7 @@ class BetterEditor:
         )
         self.insert_resource_action.setObjectName("insertResource")
         self.insert_resource_action.triggered.connect(self.insert_resource)
-        self.insert_resource_action.setToolTip(
-            f"<b>{self.insert_resource_action.text()}</b>"
-        )
+        self.insert_resource_action.setToolTip(f"<b>{self.insert_resource_action.text()}</b>")
 
         # Add next / previous tab shortcuts
         self.next_tab_shortcut = QShortcut("Ctrl+PgDown", self.python_console)
@@ -309,9 +301,7 @@ class BetterEditor:
                 QMessageBox.information(
                     self.iface.mainWindow(),
                     self.tr("Information"),
-                    self.tr(
-                        "Jedi was upgraded. You need to restart QGIS to fully use BetterEditor"
-                    ),
+                    self.tr("Jedi was upgraded. You need to restart QGIS to fully use BetterEditor"),
                 )
 
             self.jedi = None
@@ -373,12 +363,8 @@ class BetterEditor:
                 shortcut.setParent(self.iface.mainWindow())
                 shortcut.setContext(Qt.ApplicationShortcut)
 
-        self.iface.mainWindow().findChild(QAction, "mActionZoomIn").setShortcut(
-            "Ctrl+Alt++"
-        )
-        self.iface.mainWindow().findChild(QAction, "mActionZoomOut").setShortcut(
-            "Ctrl+Alt+-"
-        )
+        self.iface.mainWindow().findChild(QAction, "mActionZoomIn").setShortcut("Ctrl+Alt++")
+        self.iface.mainWindow().findChild(QAction, "mActionZoomOut").setShortcut("Ctrl+Alt+-")
 
         self.zoom_out_shortcut.activated.disconnect()
         self.zoom_out_shortcut.setEnabled(False)
@@ -402,9 +388,7 @@ class BetterEditor:
         self.iface.pluginMenu().removeAction(self.plugin_menu.menuAction())
 
         # Reactivate old autoCloseBracketEditor
-        QSettings().setValue(
-            "pythonConsole/autoCloseBracketEditor", self.oldAutoCloseBracketEditor
-        )
+        QSettings().setValue("pythonConsole/autoCloseBracketEditor", self.oldAutoCloseBracketEditor)
 
     def current_editor(self) -> Editor:
         if not self.tab_widget.currentWidget():
@@ -421,14 +405,10 @@ class BetterEditor:
         self.current_editor().insert_resource()
 
     def go_to_next_tab(self):
-        self.tab_widget.setCurrentIndex(
-            (self.tab_widget.currentIndex() + 1) % self.tab_widget.count()
-        )
+        self.tab_widget.setCurrentIndex((self.tab_widget.currentIndex() + 1) % self.tab_widget.count())
 
     def go_to_previous_tab(self):
-        self.tab_widget.setCurrentIndex(
-            (self.tab_widget.currentIndex() - 1) % self.tab_widget.count()
-        )
+        self.tab_widget.setCurrentIndex((self.tab_widget.currentIndex() - 1) % self.tab_widget.count())
 
     def show_about(self):
 
@@ -469,9 +449,7 @@ class BetterEditor:
     def on_settings_changed(self):
 
         # Hide / Show old comment actions
-        self.set_old_comments_action_visible(
-            not self.settings.value("hide_old_comment_actions", True, bool)
-        )
+        self.set_old_comments_action_visible(not self.settings.value("hide_old_comment_actions", True, bool))
 
         for editor in self.python_console.findChildren(Editor):
             self.customize_editor(editor)
@@ -501,9 +479,7 @@ class BetterEditor:
 
         editor.setCallTipsStyle(QsciScintilla.CallTipsNone)
         editor.setAutoCompletionSource(QsciScintilla.AcsNone)
-        editor.setFolding(
-            self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int)
-        )
+        editor.setFolding(self.settings.value("folding_style", QsciScintilla.BoxedTreeFoldStyle, int))
 
         # Add a small margin after the indicator (if folding is not Plain or None)
         if editor.folding() > 1:
@@ -514,9 +490,7 @@ class BetterEditor:
         if self.settings.value("ruler_visible", True, bool):
             editor.setEdgeMode(QsciScintilla.EdgeLine)
             editor.setEdgeColumn(self.settings.value("max_line_length", 88, int))
-            editor.setEdgeColor(
-                self.settings.value("ruler_color", QColor("#00aaff"), QColor)
-            )
+            editor.setEdgeColor(self.settings.value("ruler_color", QColor("#00aaff"), QColor))
         else:
             editor.setEdgeMode(QsciScintilla.EdgeNone)
 
@@ -531,11 +505,7 @@ class BetterEditor:
         editor.setEdgeMode(QsciScintilla.EdgeLine)
         editor.setEdgeColumn(80)
         editor.setMarginWidth(3, "")
-        editor.setEdgeColor(
-            QSettings().value(
-                "pythonConsole/edgeColorEditor", QColor("#efefef"), QColor
-            )
-        )
+        editor.setEdgeColor(QSettings().value("pythonConsole/edgeColorEditor", QColor("#efefef"), QColor))
 
         # Disable shortcuts
         for shortcut in editor.findChildren(QShortcut):
@@ -543,7 +513,7 @@ class BetterEditor:
 
         editor.markerDefine(
             QgsApplication.getThemePixmap("console/iconSyntaxErrorConsole.svg"),
-            editor.MARKER_NUM,
+            MARKER_NUMBER,
         )
 
         editor.setAnnotationDisplay(QsciScintilla.AnnotationBoxed)
