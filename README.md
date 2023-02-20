@@ -1,3 +1,16 @@
+> **Warning**
+>
+> This plugin is **OBSOLETE** and is not guaranteed to work beyond QGIS 3.10.
+>
+> Some of its features will eventually be merged to QGIS:
+> - ToggleComment (https://github.com/qgis/QGIS/pull/50341): 3.30
+> - Smart brackets (https://github.com/qgis/QGIS/pull/51391): 3.30
+> - Fix altgr shortcut (https://github.com/qgis/QGIS/pull/51420): 3.30
+> - Format code (https://github.com/qgis/QGIS/pull/51733): 3.32
+> - Save / Run / Tab shortcuts (https://github.com/qgis/QGIS/pull/51913): 3.32
+> - Jedi features (autocompletion, calltips, goto): TBD
+
+
 Better Editor (QGIS plugin)
 ===
 ![Icon](./icon.png)
