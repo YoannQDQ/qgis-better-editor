@@ -6,8 +6,9 @@
 > - ToggleComment (https://github.com/qgis/QGIS/pull/50341): 3.30
 > - Smart brackets (https://github.com/qgis/QGIS/pull/51391): 3.30
 > - Fix altgr shortcut (https://github.com/qgis/QGIS/pull/51420): 3.30
+> - Save / Run / Tab shortcuts (https://github.com/qgis/QGIS/pull/51913): 3.30
 > - Format code (https://github.com/qgis/QGIS/pull/51733): 3.32
-> - Save / Run / Tab shortcuts (https://github.com/qgis/QGIS/pull/51913): 3.32
+> - IPython-style system commands: 3.32
 > - Jedi features (autocompletion, calltips, goto): TBD
 
 
